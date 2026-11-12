@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "grabarz-garden-pantry",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "4615c0ae81bff60c4cef0e83593ac743",
+  "d1_databases": [{ "binding": "DB", "database_name": "grabarz-database", "database_id": "a2173aed-2041-4b71-854a-bab83b39a03e", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "grabarz-storage" }],
+  "vars": { "OWNER_EMAIL": "grabarzfarmstand@gmail.com", "ACCESS_TEAM_DOMAIN": "", "ACCESS_AUD": "" }
+}

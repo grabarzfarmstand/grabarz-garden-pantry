@@ -1,0 +1,33 @@
+# Grabarz Garden & Pantry — independent Cloudflare migration
+
+This is a migration candidate, not a finished deployment. The original site is unchanged.
+The storefront, styles, logos, and owner dashboard layout are preserved.
+
+Verification completed: dependency installation, production build (`pnpm build`), and TypeScript checks (`pnpm exec tsc --noEmit`) passed. No live deployment or browser/end-to-end login/upload test has been performed. Authentication configuration remains intentionally blank and locked. Build emits non-fatal framework dynamic-import warnings.
+
+## What changed
+
+- Vite/Worker configuration targets the owner's Cloudflare account, existing D1 database, and R2 bucket.
+- Owner authorization verifies Cloudflare Access JWT signatures, issuer, audience, expiry, and the explicitly allowed owner email. No first-visitor ownership claim.
+- Missing Access configuration locks owner access. Product APIs also verify authorization.
+- Cross-origin product mutations are rejected. Photo MIME types are restricted to JPG, PNG, WebP.
+
+## Setup still required — do not promote this site yet
+
+1. Install dependencies with Node 22.13+ and pnpm 11.25: `pnpm install --frozen-lockfile`.
+2. Configure a Cloudflare Access self-hosted application for the chosen hostname's `/owner` and `/api/owner/*` paths, including any additional hostnames used for administration. Allow ONLY `grabarzfarmstand@gmail.com`, with email one-time PIN or another explicitly chosen login method. Keep public storefront paths outside this policy. Do not create an Allow Everyone or Bypass rule for owner paths.
+3. Set `ACCESS_TEAM_DOMAIN` (hostname only, ending in `.cloudflareaccess.com`) and `ACCESS_AUD` (the application's audience tag) in wrangler.jsonc. These are configuration identifiers, not API secrets. Verify the account's plan and any charge before enabling services.
+4. Run `pnpm build`. Deploy through Cloudflare Workers, not Pages ZIP upload: `pnpm deploy`. This requires the owner's Cloudflare authorization. Never put API tokens in this repository or in chat.
+5. The two D1 tables were already created manually. The idempotent migration is supplied for local testing/new databases; do not delete the existing database.
+6. Test public browsing, unauthorized owner access, owner sign-in, product/photo creation, publish/unpublish and deletion, and access from a second device. Confirm logout/expiry denies changes. Review draft image access (current image URLs are publicly readable if known).
+7. Connect and verify the custom domain only after testing. Verify domain ownership and DNS state; a domain appearing in the dashboard is not proof of registration.
+
+## Important limitations
+
+This package is source code, not a drag-and-drop static website. GitHub must contain the unpacked source files, with package.json and wrangler.jsonc at repository root. Retain the old ZIP as a backup.
+
+Checkout/payments, customer orders, shipping calculations, and automatic sold-stock deductions are NOT implemented. Existing ordering buttons remain disabled. Current dashboard supports its original add/publish/unpublish/delete operations, not a full commerce platform. Photos have a 12 MB per-file limit; automatic compression is not yet implemented. Cloudflare free limits and possible R2 overages still apply; this migration is not a guarantee of zero costs or unlimited usage.
+
+Legacy Sites helper files are retained for source completeness but the new build/owner paths do not use ChatGPT authentication. Do not publish via the legacy .openai manifest or old Sites scripts. Use only the build/deploy commands above.
+
+No live Cloudflare resources, GitHub contents, paid plans, or original hosted website were modified during preparation.
