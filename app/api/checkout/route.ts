@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { inArray, eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders, products } from "@/db/schema";
 
