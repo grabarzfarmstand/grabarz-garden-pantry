@@ -18,11 +18,115 @@ type Product = {
   updatedAt: number;
 };
 
+type RecentOrder = {
+  id: string;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  shippingAddressJson: string | null;
+  itemsJson: string;
+  totalPaidCents: number;
+  currency: string;
+  paidAt: number;
+};
+
+type OrderLine = {
+  name: string;
+  quantity: number;
+  priceCents?: number;
+};
+
+type ShippingAddress = {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  country: string | null;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function imageUrl(imageKey: string) {
   return `/api/images?key=${encodeURIComponent(imageKey)}`;
 }
 
-export default function OwnerDashboard({ initialItems, displayName }: { initialItems: Product[]; displayName: string }) {
+function parseOrderItems(json: string): OrderLine[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) return null;
+
+  const lines: OrderLine[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== "object" || !("quantity" in item) ||
+        typeof item.quantity !== "number" || !Number.isInteger(item.quantity) || item.quantity < 1) {
+      return null;
+    }
+    const id = "id" in item && typeof item.id === "string" ? item.id : "";
+    const name = "name" in item && typeof item.name === "string" ? item.name : id;
+    const priceCents = "priceCents" in item && typeof item.priceCents === "number" &&
+      Number.isSafeInteger(item.priceCents) && item.priceCents >= 0
+      ? item.priceCents
+      : undefined;
+    lines.push({ name: name || "Item", quantity: item.quantity, priceCents });
+  }
+  return lines;
+}
+
+function parseShippingAddress(json: string | null): ShippingAddress | null {
+  if (!json) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (!isRecord(parsed)) return null;
+  const read = (key: keyof ShippingAddress) => {
+    const value = parsed[key];
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  };
+  const address = {
+    line1: read("line1"),
+    line2: read("line2"),
+    city: read("city"),
+    state: read("state"),
+    postalCode: read("postalCode"),
+    country: read("country"),
+  };
+  return Object.values(address).some(Boolean) ? address : null;
+}
+
+function formatMoney(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
+}
+
+function addressLines(address: ShippingAddress | null) {
+  if (!address) return [];
+  const cityState = [address.city, [address.state, address.postalCode].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
+  return [address.line1, address.line2, cityState, address.country].filter((line): line is string => Boolean(line));
+}
+
+export default function OwnerDashboard({
+  initialItems,
+  initialOrders,
+  displayName,
+}: {
+  initialItems: Product[];
+  initialOrders: RecentOrder[];
+  displayName: string;
+}) {
   const [items, setItems] = useState(initialItems);
   const [busy, setBusy] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -164,6 +268,54 @@ export default function OwnerDashboard({ initialItems, displayName }: { initialI
           </article>) : <div className="owner-empty">No products yet. Your first upload will appear here.</div>}</div>
         </section>
       </div>
+      <section className="owner-card recent-orders-card">
+        <h2>Recent Orders</h2>
+        <p className="helper">Latest paid orders, with customer and fulfillment details.</p>
+        {initialOrders.length === 0 ? (
+          <div className="owner-empty">No completed orders yet.</div>
+        ) : (
+          <div className="recent-orders">
+            {initialOrders.map((order) => {
+              const lines = parseOrderItems(order.itemsJson);
+              const address = addressLines(parseShippingAddress(order.shippingAddressJson));
+              const date = new Date(order.paidAt);
+              return <article className="recent-order" key={order.id}>
+                <header className="recent-order-header">
+                  <h3>{order.customerName || "Name not provided"}</h3>
+                  <time dateTime={date.toISOString()}>{date.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}</time>
+                </header>
+                <div className="recent-order-details">
+                  <div>
+                    <strong>Customer</strong>
+                    <p>{order.customerEmail || "Email not provided"}</p>
+                    <p>{order.customerPhone || "Phone not provided"}</p>
+                  </div>
+                  <div>
+                    <strong>Shipping address</strong>
+                    {address.length > 0 ? (
+                      <address>{address.map((line) => <span key={line}>{line}</span>)}</address>
+                    ) : <p>Address not provided</p>}
+                  </div>
+                  <div>
+                    <strong>Items ordered</strong>
+                    {lines === null ? (
+                      <p>Order details unavailable.</p>
+                    ) : lines.length > 0 ? (
+                      <ul className="recent-order-items">
+                        {lines.map((line, index) => <li key={`${line.name}-${index}`}>
+                          {line.name} × {line.quantity}
+                          {line.priceCents === undefined ? "" : ` · ${formatMoney(line.priceCents * line.quantity, order.currency)}`}
+                        </li>)}
+                      </ul>
+                    ) : <p>No line items recorded.</p>}
+                  </div>
+                  <p className="recent-order-total"><strong>Total paid</strong><span>{formatMoney(order.totalPaidCents, order.currency)}</span></p>
+                </div>
+              </article>;
+            })}
+          </div>
+        )}
+      </section>
     </div>
   </main>;
 }

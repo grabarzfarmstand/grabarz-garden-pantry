@@ -30,3 +30,17 @@ export const checkoutOrders = sqliteTable("checkout_orders", {
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const orders = sqliteTable("orders", {
+  id: text("id").primaryKey(),
+  stripeSessionId: text("stripe_session_id").notNull().unique(),
+  customerName: text("customer_name"),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  shippingAddressJson: text("shipping_address_json"),
+  itemsJson: text("items_json").notNull(),
+  totalPaidCents: integer("total_paid_cents").notNull(),
+  currency: text("currency").notNull(),
+  createdAt: integer("created_at").notNull(),
+  paidAt: integer("paid_at").notNull(),
+});

@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     const now = Date.now();
     await db.insert(checkoutOrders).values({
       id: orderId,
-      itemsJson: JSON.stringify(lineItems.map(({ id, quantity }) => ({ id, quantity }))),
+      itemsJson: JSON.stringify(lineItems),
       amountCents,
       currency: "usd",
       status: "pending",
@@ -137,6 +137,8 @@ export async function POST(request: Request) {
       mode: "payment",
       client_reference_id: orderId,
       "metadata[order_id]": orderId,
+      "phone_number_collection[enabled]": "true",
+      "shipping_address_collection[allowed_countries][0]": "US",
       success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancelled`,
     });
