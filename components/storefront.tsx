@@ -79,6 +79,11 @@ export function StorefrontFooter() {
         <strong>Grabarz Garden & Pantry</strong>
         <p>Seasonal Farm & Home Market · Grown · Gathered · Handmade</p>
         <small>Secure checkout is available for published items.</small>
+        <nav className="footer-policy-links" aria-label="Store policies">
+          <a href="/shipping-returns">Shipping, local delivery & returns</a>
+          <a href="/terms">Terms & conditions</a>
+          <a href="/privacy">Privacy policy</a>
+        </nav>
       </div>
     </footer>
   );
@@ -133,7 +138,7 @@ export function ProductGrid({
     <div className="product-grid">
       {items.map((item) => (
         <article className="product" key={item.id}>
-          <img src={`/api/images/${encodeURIComponent(item.imageKey)}`} alt={item.name} />
+          <img src={`/api/images?key=${encodeURIComponent(item.imageKey)}`} alt={item.name} />
           <div className="product-body">
             <span className="pill">{item.category}</span>
             <h2>{item.name}</h2>
