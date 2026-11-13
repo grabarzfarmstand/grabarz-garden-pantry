@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { products } from "@/db/schema";
+import { AddToCartButton, CartButton } from "@/components/cart";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +26,13 @@ const marketItems = items.filter((item) => item.category !== "Bath & Home");
       <div className="topbar">Seasonal · small-batch · first come, first served</div>
       <nav className="nav wrap">
         <a className="brand" href="#top"><img src="/assets/8BDEB11B-B24B-4DF7-8EDA-F9BEE03B71BE.jpeg" alt="Grabarz Garden & Pantry logo" /><span><strong>Grabarz Garden & Pantry</strong><small>Grown · Gathered · Handmade</small></span></a>
-        <div className="navlinks"><a href="#shop">Shop</a><a href="#how">How it works</a><a className="owner-link" href="/owner">Owner area</a></div>
+        <div className="navlinks"><a href="#shop">Shop</a><a href="#how">How it works</a><a className="owner-link" href="/owner">Owner area</a><CartButton /></div>
       </nav>
       <section className="hero" id="top"><div className="hero-shade" /><div className="hero-copy wrap"><p className="eyebrow">A seasonal farm & home market</p><h1>Farm goodness, handmade essentials & found treasures.</h1><p>Shop small-batch pantry favorites, seasonal garden goods, Rustic Kettle soaps, neighbor-made wares and thoughtfully gathered resale finds.</p><a className="button rose" href="#shop">See what’s available</a></div></section>
       
       <section className="section wrap" id="shop">
         <div className="section-heading"><div><p className="eyebrow dark">This week’s market</p><h2>Available now</h2></div><p>Quantities are limited. An item is reserved only after ordering and payment are complete.</p></div>
-        {items.length ? <div className="product-grid">{items.map((item) => <article className="product" key={item.id}><img src={"/api/images/" + encodeURIComponent(item.imageKey)} alt={item.name} /><div className="product-body"><span className="pill">{item.category}</span><h3>{item.name}</h3><p>{item.description}</p><div className="product-meta"><strong>{money(item.priceCents)}</strong><span>{item.quantity} available</span></div><div className="fulfillment">{item.fulfillment}</div><button type="button" disabled>Ordering opens soon</button></div></article>)}</div> : <div className="empty-market"><h3>Real product photos are coming next.</h3><p>As products are uploaded and marked “Published” in the owner area, they will appear here automatically.</p><a className="button sage" href="/owner">Add the first product</a></div>}
+        {items.length ? <div className="product-grid">{items.map((item) => <article className="product" key={item.id}><img src={"/api/images/" + encodeURIComponent(item.imageKey)} alt={item.name} /><div className="product-body"><span className="pill">{item.category}</span><h3>{item.name}</h3><p>{item.description}</p><div className="product-meta"><strong>{money(item.priceCents)}</strong><span>{item.quantity} available</span></div><div className="fulfillment">{item.fulfillment}</div><AddToCartButton product={{ id: item.id, name: item.name, priceCents: item.priceCents, stock: item.quantity }} /></div></article>)}</div> : <div className="empty-market"><h3>Real product photos are coming next.</h3><p>As products are uploaded and marked “Published” in the owner area, they will appear here automatically.</p><a className="button sage" href="/owner">Add the first product</a></div>}
       </section>
       <a className="soap-strip wrap"><img src="/assets/rustic-kettle-logo-wide.png" alt="Rustic Kettle Soap Co. by Grabarz Garden & Pantry" /><div><p className="eyebrow dark">Our handmade soap line</p><h2>Rustic, useful and made in small batches.</h2><p>Old-fashioned farmhouse character for cleansing bars, solid hair care and home essentials.</p></div></a>
       <section className="section wrap" id="soap-products">
@@ -56,7 +57,7 @@ const marketItems = items.filter((item) => item.category !== "Bath & Home");
               <span>{item.quantity} available</span>
             </div>
             <div className="fulfillment">{item.fulfillment}</div>
-            <button type="button" disabled>Ordering opens soon</button>
+            <AddToCartButton product={{ id: item.id, name: item.name, priceCents: item.priceCents, stock: item.quantity }} />
           </div>
         </article>
       ))}
