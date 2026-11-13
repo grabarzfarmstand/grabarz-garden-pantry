@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { checkoutOrders, products } from "@/db/schema";
 import { getDb } from "@/db";
+import { getCheckoutFulfillmentOptions } from "@/lib/fulfillment";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,14 @@ export async function POST(request: Request) {
       return Response.json({ error: "One or more items are no longer available." }, { status: 409 });
     }
 
-    const lineItems: { id: string; quantity: number; name: string; priceCents: number }[] = [];
+    const lineItems: {
+      id: string;
+      quantity: number;
+      name: string;
+      priceCents: number;
+      category: string;
+      fulfillment: string;
+    }[] = [];
     let amountCents = 0;
     for (const [id, quantity] of quantities) {
       const product = productById.get(id);
@@ -113,10 +121,31 @@ export async function POST(request: Request) {
         return Response.json({ error: "An item has an invalid price and cannot be purchased." }, { status: 409 });
       }
       amountCents += product.priceCents * quantity;
-      lineItems.push({ id, quantity, name: product.name, priceCents: product.priceCents });
+      lineItems.push({
+        id,
+        quantity,
+        name: product.name,
+        priceCents: product.priceCents,
+        category: product.category,
+        fulfillment: product.fulfillment,
+      });
     }
 
     if (!Number.isSafeInteger(amountCents) || amountCents > 99_999_999) {
+      return Response.json({ error: "The cart total is too large." }, { status: 400 });
+    }
+
+    const fulfillmentOptions = getCheckoutFulfillmentOptions(
+      amountCents,
+      lineItems.map((item) => item.fulfillment),
+    );
+    if (fulfillmentOptions.length === 0) {
+      return Response.json(
+        { error: "No fulfillment option is available for every item in your cart and its subtotal." },
+        { status: 409 },
+      );
+    }
+    if (amountCents + Math.max(...fulfillmentOptions.map((option) => option.amountCents)) > 99_999_999) {
       return Response.json({ error: "The cart total is too large." }, { status: 400 });
     }
 
@@ -142,6 +171,22 @@ export async function POST(request: Request) {
       success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancelled`,
     });
+    fulfillmentOptions.forEach((option, index) => {
+      const optionPrefix = `shipping_options[${index}][shipping_rate_data]`;
+      params.set(`${optionPrefix}[type]`, "fixed_amount");
+      params.set(`${optionPrefix}[display_name]`, option.displayName);
+      params.set(`${optionPrefix}[fixed_amount][amount]`, String(option.amountCents));
+      params.set(`${optionPrefix}[fixed_amount][currency]`, "usd");
+    });
+    if (
+      lineItems.some((item) => item.category === "Pantry") &&
+      fulfillmentOptions.some((option) => option.method === "mail")
+    ) {
+      params.set(
+        "custom_text[shipping_address][message]",
+        "Cottage food pantry items can only be shipped within Oregon. The owner verifies addresses before fulfillment.",
+      );
+    }
     lineItems.forEach((item, index) => {
       params.set(`line_items[${index}][price_data][currency]`, "usd");
       params.set(`line_items[${index}][price_data][unit_amount]`, String(item.priceCents));

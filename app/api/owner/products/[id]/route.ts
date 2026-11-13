@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { products } from "@/db/schema";
 import { requireOwnerApi } from "@/lib/owner";
+import { productFulfillmentChoices } from "@/lib/fulfillment";
 export const dynamic = "force-dynamic";
 
 const PHOTO_TYPES: Record<string, string> = {
@@ -47,14 +48,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const data = await request.formData();
   const name = String(data.get("name") ?? "").trim();
   const description = String(data.get("description") ?? "").trim();
+  const fulfillment = String(data.get("fulfillment") ?? "").trim();
   const rawPrice = data.get("price");
   const rawQuantity = data.get("quantity");
   const price = typeof rawPrice === "string" && rawPrice.trim() !== "" ? Number(rawPrice) : Number.NaN;
   const quantity = typeof rawQuantity === "string" && rawQuantity.trim() !== "" ? Number(rawQuantity) : Number.NaN;
   const priceCents = Math.round(price * 100);
-  if (!name || !description || !Number.isFinite(price) || price < 0 || !Number.isSafeInteger(priceCents) ||
+  const validFulfillment =
+    productFulfillmentChoices.some((choice) => choice === fulfillment) ||
+    fulfillment === existing.fulfillment;
+  if (!name || !description || !validFulfillment ||
+      !Number.isFinite(price) || price < 0 || !Number.isSafeInteger(priceCents) ||
       !Number.isSafeInteger(quantity) || quantity < 0) {
-    return Response.json({ error: "Enter a product name, description, valid price, and whole-number quantity." }, { status: 400 });
+    return Response.json({ error: "Enter a product name, description, fulfillment method, valid price, and whole-number quantity." }, { status: 400 });
   }
 
   const photo = data.get("photo");
@@ -79,7 +85,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     await db.update(products)
-      .set({ name, description, priceCents, quantity, imageKey, updatedAt: Date.now() })
+      .set({ name, description, fulfillment, priceCents, quantity, imageKey, updatedAt: Date.now() })
       .where(eq(products.id, id));
   } catch (error) {
     if (uploadedKey && env.BUCKET) {

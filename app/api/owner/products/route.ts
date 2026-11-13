@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getDb } from "@/db";
+import { productFulfillmentChoices } from "@/lib/fulfillment";
 import { products } from "@/db/schema";
 import { requireOwnerApi } from "@/lib/owner";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function POST(request:Request) {
     if(photo.size>12*1024*1024) return Response.json({error:"That photo is larger than 12 MB. Please choose a smaller copy."},{status:400});
     const name=String(data.get("name")??"").trim(), description=String(data.get("description")??"").trim(), category=String(data.get("category")??"").trim(), fulfillment=String(data.get("fulfillment")??"").trim();
     const priceCents=Math.round(Number(data.get("price"))*100), quantity=Math.max(0,Math.floor(Number(data.get("quantity"))));
-    if(!name||!description||!category||!fulfillment||!Number.isFinite(priceCents)||priceCents<0||!Number.isFinite(quantity)) return Response.json({error:"Please complete every field."},{status:400});
+    if(!name||!description||!category||!productFulfillmentChoices.some((choice)=>choice===fulfillment)||!Number.isFinite(priceCents)||priceCents<0||!Number.isFinite(quantity)) return Response.json({error:"Please complete every field."},{status:400});
     const id=crypto.randomUUID(), extension=photo.type==="image/png"?"png":photo.type==="image/webp"?"webp":"jpg", imageKey="products/"+id+"."+extension;
     await env.BUCKET.put(imageKey,await photo.arrayBuffer(),{httpMetadata:{contentType:photo.type}});
     const now=Date.now();

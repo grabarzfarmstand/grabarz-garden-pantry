@@ -41,6 +41,8 @@ export const orders = sqliteTable("orders", {
   itemsJson: text("items_json").notNull(),
   totalPaidCents: integer("total_paid_cents").notNull(),
   currency: text("currency").notNull(),
+  fulfillmentOption: text("fulfillment_option").notNull(),
+  shippingCents: integer("shipping_cents").notNull(),
   createdAt: integer("created_at").notNull(),
   paidAt: integer("paid_at").notNull(),
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { productFulfillmentChoices } from "@/lib/fulfillment";
 
 /* eslint-disable @next/next/no-html-link-for-pages */
 
@@ -27,6 +28,8 @@ type RecentOrder = {
   itemsJson: string;
   totalPaidCents: number;
   currency: string;
+  fulfillmentOption: string;
+  shippingCents: number;
   paidAt: number;
 };
 
@@ -34,6 +37,7 @@ type OrderLine = {
   name: string;
   quantity: number;
   priceCents?: number;
+  category?: string;
 };
 
 type ShippingAddress = {
@@ -74,7 +78,10 @@ function parseOrderItems(json: string): OrderLine[] | null {
       Number.isSafeInteger(item.priceCents) && item.priceCents >= 0
       ? item.priceCents
       : undefined;
-    lines.push({ name: name || "Item", quantity: item.quantity, priceCents });
+    const category = "category" in item && typeof item.category === "string"
+      ? item.category
+      : undefined;
+    lines.push({ name: name || "Item", quantity: item.quantity, priceCents, category });
   }
   return lines;
 }
@@ -229,7 +236,10 @@ export default function OwnerDashboard({
             <div className="field"><label htmlFor="name">Product name</label><input id="name" name="name" placeholder="Example: Dirty Chai Soap" required /></div>
             <div className="field"><label htmlFor="category">Department</label><select id="category" name="category" required><option>Pantry</option><option>Garden</option><option>Bath & Home</option><option>Neighbor-Made</option><option>Second Story Finds</option></select></div>
             <div className="two-fields"><div className="field"><label htmlFor="price">Price</label><input id="price" name="price" type="number" min="0" step=".01" placeholder="8.00" required /></div><div className="field"><label htmlFor="quantity">Quantity available</label><input id="quantity" name="quantity" type="number" min="0" step="1" defaultValue="1" required /></div></div>
-            <div className="field"><label htmlFor="fulfillment">How customers receive it</label><select id="fulfillment" name="fulfillment" required><option>Local delivery</option><option>Mail order</option><option>Mail order or local delivery</option></select></div>
+            <div className="field"><label htmlFor="fulfillment">How customers receive it</label><select id="fulfillment" name="fulfillment" defaultValue="" required>
+              <option value="" disabled>Choose fulfillment options</option>
+              {productFulfillmentChoices.map((choice) => <option key={choice}>{choice}</option>)}
+            </select></div>
             <div className="field"><label htmlFor="description">Short description</label><textarea id="description" name="description" placeholder="Tell customers what makes it special." required /></div>
             <label className="checkline"><input name="published" type="checkbox" value="yes" /> Show this product in the store immediately</label>
             {message && <p className="form-message" role="status">{message}</p>}
@@ -258,6 +268,10 @@ export default function OwnerDashboard({
                   <div className="field"><label htmlFor={`edit-quantity-${item.id}`}>Quantity available</label><input id={`edit-quantity-${item.id}`} name="quantity" type="number" min="0" step="1" defaultValue={item.quantity} required /></div>
                 </div>
                 <div className="field"><label htmlFor={`edit-description-${item.id}`}>Description</label><textarea id={`edit-description-${item.id}`} name="description" defaultValue={item.description} required /></div>
+                <div className="field"><label htmlFor={`edit-fulfillment-${item.id}`}>How customers receive it</label><select id={`edit-fulfillment-${item.id}`} name="fulfillment" defaultValue={item.fulfillment} required>
+                  {productFulfillmentChoices.map((choice) => <option key={choice}>{choice}</option>)}
+                  {!productFulfillmentChoices.includes(item.fulfillment) && <option>{item.fulfillment}</option>}
+                </select></div>
                 <div className="field"><label htmlFor={`edit-photo-${item.id}`}>Replace photo (optional)</label><input id={`edit-photo-${item.id}`} name="photo" type="file" accept="image/jpeg,image/png,image/webp" /><small>Leave blank to keep the current photo.</small></div>
                 <div className="owner-edit-actions">
                   <button className="save-button" disabled={savingId === item.id}>{savingId === item.id ? "Saving…" : "Save changes"}</button>
@@ -277,7 +291,15 @@ export default function OwnerDashboard({
           <div className="recent-orders">
             {initialOrders.map((order) => {
               const lines = parseOrderItems(order.itemsJson);
-              const address = addressLines(parseShippingAddress(order.shippingAddressJson));
+              const parsedAddress = parseShippingAddress(order.shippingAddressJson);
+              const address = addressLines(parsedAddress);
+              const hasPantryItems = lines?.some((line) => line.category === "Pantry") ?? false;
+              const shippingState = parsedAddress?.state?.trim().toUpperCase();
+              const requiresOregonAddressReview =
+                order.fulfillmentOption.startsWith("Mail Order") &&
+                hasPantryItems &&
+                shippingState !== "OR" &&
+                shippingState !== "OREGON";
               const date = new Date(order.paidAt);
               return <article className="recent-order" key={order.id}>
                 <header className="recent-order-header">
@@ -291,10 +313,20 @@ export default function OwnerDashboard({
                     <p>{order.customerPhone || "Phone not provided"}</p>
                   </div>
                   <div>
-                    <strong>Shipping address</strong>
+                    <strong>Shipping / delivery address</strong>
                     {address.length > 0 ? (
                       <address>{address.map((line) => <span key={line}>{line}</span>)}</address>
                     ) : <p>Address not provided</p>}
+                    {requiresOregonAddressReview && (
+                      <p className="order-warning" role="note">
+                        <strong>Oregon address review:</strong> cottage food pantry items can only be shipped within Oregon. Verify this address before shipping.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <strong>Fulfillment</strong>
+                    <p>{order.fulfillmentOption}</p>
+                    <p>{order.shippingCents === 0 ? "Free" : `${formatMoney(order.shippingCents, order.currency)} fee`}</p>
                   </div>
                   <div>
                     <strong>Items ordered</strong>

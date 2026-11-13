@@ -2,12 +2,18 @@ import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { checkoutOrders, orders } from "@/db/schema";
 import { getDb } from "@/db";
+import { getCheckoutFulfillmentOptions } from "@/lib/fulfillment";
 
 export const dynamic = "force-dynamic";
 
 const SIGNATURE_TOLERANCE_SECONDS = 300;
 
-type CheckoutItem = { id: string; quantity: number };
+type CheckoutItem = {
+  id: string;
+  quantity: number;
+  category?: string;
+  fulfillment?: string;
+};
 type StripeEvent = {
   id: string;
   type: string;
@@ -27,6 +33,11 @@ type StripeShippingDetails = {
   phone?: string | null;
   address?: StripeAddress | null;
 };
+type StripeShippingCost = {
+  amount_subtotal: number | null;
+  amount_tax: number | null;
+  amount_total: number | null;
+};
 type CheckoutSession = {
   id: string;
   mode: string;
@@ -41,6 +52,7 @@ type CheckoutSession = {
     phone?: string | null;
   } | null;
   shipping_details?: StripeShippingDetails | null;
+  shipping_cost?: StripeShippingCost | null;
   collected_information?: {
     shipping_details?: StripeShippingDetails | null;
   } | null;
@@ -110,7 +122,13 @@ function parseItems(itemsJson: string): CheckoutItem[] | null {
       ) {
         return null;
       }
-      items.push({ id: item.id, quantity: item.quantity });
+      const category =
+        "category" in item && typeof item.category === "string" ? item.category : undefined;
+      const fulfillment =
+        "fulfillment" in item && typeof item.fulfillment === "string"
+          ? item.fulfillment
+          : undefined;
+      items.push({ id: item.id, quantity: item.quantity, category, fulfillment });
     }
     if (new Set(items.map((item) => item.id)).size !== items.length) return null;
     return items;
@@ -168,7 +186,8 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
     session.mode !== "payment" ||
     session.payment_status !== "paid" ||
     session.currency !== order.currency ||
-    session.amount_total !== order.amountCents ||
+    session.amount_total === null ||
+    !Number.isSafeInteger(session.amount_total) ||
     (order.stripeSessionId !== null && order.stripeSessionId !== session.id)
   ) {
     console.error("Paid Checkout session does not match the stored order.", orderId);
@@ -179,6 +198,39 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
   if (!items) {
     console.error("Stored Checkout order has invalid item data.", orderId);
     return Response.json({ error: "Order item data is invalid." }, { status: 500 });
+  }
+
+  let fulfillmentOption = "Legacy fulfillment";
+  let shippingCents = 0;
+  const hasFulfillmentSnapshot = items.every(
+    (item) => typeof item.category === "string" && typeof item.fulfillment === "string",
+  );
+  if (hasFulfillmentSnapshot) {
+    const shippingCost = session.shipping_cost;
+    const availableOptions = getCheckoutFulfillmentOptions(
+      order.amountCents,
+      items.map((item) => item.fulfillment ?? ""),
+    );
+    const selectedOption = shippingCost
+      ? availableOptions.find((option) => option.amountCents === shippingCost.amount_subtotal)
+      : undefined;
+    if (
+      !shippingCost ||
+      shippingCost.amount_subtotal === null ||
+      shippingCost.amount_total === null ||
+      !Number.isSafeInteger(shippingCost.amount_subtotal) ||
+      !Number.isSafeInteger(shippingCost.amount_total) ||
+      !selectedOption ||
+      session.amount_total !== order.amountCents + shippingCost.amount_total
+    ) {
+      console.error("Paid Checkout session has an invalid fulfillment selection.", orderId);
+      return Response.json({ error: "Checkout fulfillment does not match the order." }, { status: 400 });
+    }
+    fulfillmentOption = selectedOption.displayName;
+    shippingCents = shippingCost.amount_subtotal;
+  } else if (session.shipping_cost || session.amount_total !== order.amountCents) {
+    console.error("Legacy Checkout session does not match the stored order.", orderId);
+    return Response.json({ error: "Checkout session does not match the order." }, { status: 400 });
   }
 
   const customer = getOrderCustomerDetails(session);
@@ -196,14 +248,17 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
     order.itemsJson,
     session.amount_total,
     session.currency,
+    fulfillmentOption,
+    shippingCents,
     order.createdAt,
     paidAt,
   ];
   const insertPaidOrder = env.DB.prepare(
     `INSERT OR IGNORE INTO orders (
        id, stripe_session_id, customer_name, customer_email, customer_phone,
-       shipping_address_json, items_json, total_paid_cents, currency, created_at, paid_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       shipping_address_json, items_json, total_paid_cents, currency,
+       fulfillment_option, shipping_cents, created_at, paid_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(...orderValues);
 
   if (order.status === "paid") {
@@ -248,9 +303,10 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
   const recordPaidOrder = env.DB.prepare(
     `INSERT OR IGNORE INTO orders (
        id, stripe_session_id, customer_name, customer_email, customer_phone,
-       shipping_address_json, items_json, total_paid_cents, currency, created_at, paid_at
+       shipping_address_json, items_json, total_paid_cents, currency,
+       fulfillment_option, shipping_cents, created_at, paid_at
      )
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
      WHERE EXISTS (
        SELECT 1 FROM checkout_orders
        WHERE id = ? AND status = 'paid' AND stripe_session_id = ?

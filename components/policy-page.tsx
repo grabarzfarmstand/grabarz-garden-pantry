@@ -8,9 +8,11 @@ type PolicySection = {
 
 export function PolicyPage({
   title,
+  intro,
   sections,
 }: {
   title: string;
+  intro?: string;
   sections: PolicySection[];
 }) {
   return (
@@ -19,10 +21,7 @@ export function PolicyPage({
       <article className="policy-main wrap">
         <p className="eyebrow dark">Grabarz Garden & Pantry · Rustic Kettle Soap Co.</p>
         <h1>{title}</h1>
-        <p className="policy-intro">
-          These policies apply to purchases from Grabarz Garden & Pantry and
-          Rustic Kettle Soap Co.
-        </p>
+        <p className="policy-intro">{intro ?? "These policies apply to purchases from Grabarz Garden & Pantry and Rustic Kettle Soap Co."}</p>
         <div className="policy-sections">
           {sections.map((section) => (
             <section className="policy-section" key={section.heading}>

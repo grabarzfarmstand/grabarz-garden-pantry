@@ -63,7 +63,7 @@ export function StorefrontHeader() {
         </a>
         <div className="navlinks">
           <a href="/shop">Shop</a>
-          <a className="how-link" href="/#how">How it works</a>
+          <a className="how-link" href="/how-it-works">How it works</a>
           <CartButton />
         </div>
       </nav>
@@ -79,6 +79,7 @@ export function StorefrontFooter() {
         <p>Seasonal Farm & Home Market · Grown · Gathered · Handmade</p>
         <small>Secure checkout is available for published items.</small>
         <nav className="footer-policy-links" aria-label="Store policies">
+          <a href="/how-it-works">How it works</a>
           <a href="/shipping-returns">Shipping, local delivery & returns</a>
           <a href="/terms">Terms & conditions</a>
           <a href="/privacy">Privacy policy</a>
@@ -146,6 +147,11 @@ export function ProductGrid({
             </div>
             <h2>{item.name}</h2>
             <p>{item.description}</p>
+            {item.category === "Pantry" && (
+              <p className="food-disclosure">
+                <strong>This product is homemade and is not prepared in an inspected food establishment</strong>
+              </p>
+            )}
             <div className="product-meta">
               <strong>
                 {new Intl.NumberFormat("en-US", {

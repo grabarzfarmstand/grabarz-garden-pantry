@@ -75,15 +75,17 @@ export default async function Home({
               <h2>One manageable weekly rhythm</h2>
             </div>
             <p>
-              Only finished, counted items are offered. Orders are packed
-              together, then shipped or delivered on one planned day.
+              Only finished, counted items are offered. Choose scheduled
+              in-town pickup, $6.95 mail shipping, or an eligible local
+              delivery tier at checkout.
             </p>
           </div>
           <div className="steps">
             <div><b>1</b><h3>Shop what’s ready</h3><p>Fresh, seasonal and first come, first served.</p></div>
-            <div><b>2</b><h3>Choose fulfillment</h3><p>Eligible items show mail order, local delivery or both.</p></div>
-            <div><b>3</b><h3>Receive your order</h3><p>One shipping day and one organized Valley delivery route.</p></div>
+            <div><b>2</b><h3>Choose fulfillment</h3><p>Checkout shows the methods available for every item in your cart. Local delivery tiers appear when your subtotal meets their minimum.</p></div>
+            <div><b>3</b><h3>Receive your order</h3><p>Pickup details are arranged after payment; shipping and local delivery follow scheduled days and routes.</p></div>
           </div>
+          <a className="button sage" href="/how-it-works">See all fulfillment details</a>
         </div>
       </section>
 
