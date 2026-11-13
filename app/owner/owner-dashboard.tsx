@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { productFulfillmentChoices } from "@/lib/fulfillment";
+import { getDeliveryTierForZip } from "@/lib/delivery-zips";
 
 /* eslint-disable @next/next/no-html-link-for-pages */
 
@@ -31,6 +32,15 @@ type RecentOrder = {
   fulfillmentOption: string;
   shippingCents: number;
   paidAt: number;
+};
+
+type CustomerMessage = {
+  id: string;
+  name: string;
+  email: string;
+  topic: string;
+  message: string;
+  createdAt: number;
 };
 
 type OrderLine = {
@@ -128,10 +138,12 @@ function addressLines(address: ShippingAddress | null) {
 export default function OwnerDashboard({
   initialItems,
   initialOrders,
+  initialMessages,
   displayName,
 }: {
   initialItems: Product[];
   initialOrders: RecentOrder[];
+  initialMessages: CustomerMessage[];
   displayName: string;
 }) {
   const [items, setItems] = useState(initialItems);
@@ -295,6 +307,18 @@ export default function OwnerDashboard({
               const address = addressLines(parsedAddress);
               const hasPantryItems = lines?.some((line) => line.category === "Pantry") ?? false;
               const shippingState = parsedAddress?.state?.trim().toUpperCase();
+              const deliveryTierForAddress = parsedAddress?.postalCode
+                ? getDeliveryTierForZip(parsedAddress.postalCode)
+                : null;
+              const selectedWeeklyRoute =
+                order.fulfillmentOption.startsWith("Weekly Medford & Central Point");
+              const usesLocalDelivery =
+                order.fulfillmentOption.startsWith("Local Delivery") || selectedWeeklyRoute;
+              const deliveryNeedsReview =
+                usesLocalDelivery &&
+                (!deliveryTierForAddress ||
+                  deliveryTierForAddress.amountCents !== order.shippingCents ||
+                  (deliveryTierForAddress.id === "weekly") !== selectedWeeklyRoute);
               const requiresOregonAddressReview =
                 order.fulfillmentOption.startsWith("Mail Order") &&
                 hasPantryItems &&
@@ -322,6 +346,11 @@ export default function OwnerDashboard({
                         <strong>Oregon address review:</strong> cottage food pantry items can only be shipped within Oregon. Verify this address before shipping.
                       </p>
                     )}
+                    {deliveryNeedsReview && (
+                      <p className="order-warning" role="note">
+                        <strong>Delivery ZIP review:</strong> the shipping address may not match the ZIP-based delivery tier selected at checkout. Confirm the correct fee and schedule before delivery.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <strong>Fulfillment</strong>
@@ -344,6 +373,35 @@ export default function OwnerDashboard({
                   <p className="recent-order-total"><strong>Total paid</strong><span>{formatMoney(order.totalPaidCents, order.currency)}</span></p>
                 </div>
               </article>;
+            })}
+          </div>
+        )}
+      </section>
+      <section className="owner-card customer-messages-card">
+        <h2>Customer Messages</h2>
+        <p className="helper">Inquiries submitted through the Contact Us page.</p>
+        {initialMessages.length === 0 ? (
+          <div className="owner-empty">No customer messages yet.</div>
+        ) : (
+          <div className="customer-messages">
+            {initialMessages.map((customerMessage) => {
+              const date = new Date(customerMessage.createdAt);
+              return (
+                <article className="recent-order" key={customerMessage.id}>
+                  <header className="recent-order-header">
+                    <h3>{customerMessage.topic}</h3>
+                    <time dateTime={date.toISOString()}>
+                      {date.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                    </time>
+                  </header>
+                  <p><strong>{customerMessage.name}</strong> ·{" "}
+                    <a href={`mailto:${customerMessage.email}?subject=${encodeURIComponent(`Re: ${customerMessage.topic}`)}`}>
+                      {customerMessage.email}
+                    </a>
+                  </p>
+                  <p className="customer-message-body">{customerMessage.message}</p>
+                </article>
+              );
             })}
           </div>
         )}

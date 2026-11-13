@@ -1,3 +1,5 @@
+import { getDeliveryTierForZip, localDeliveryTiers, type DeliveryTierId } from "@/lib/delivery-zips";
+
 export type FulfillmentMethod = "pickup" | "mail" | "delivery";
 
 export type CheckoutFulfillmentOption = {
@@ -5,6 +7,7 @@ export type CheckoutFulfillmentOption = {
   displayName: string;
   amountCents: number;
   minimumSubtotalCents?: number;
+  deliveryTierId?: DeliveryTierId;
 };
 
 export const productFulfillmentChoices = [
@@ -28,24 +31,13 @@ const checkoutOptions: CheckoutFulfillmentOption[] = [
     displayName: "Mail Order Shipping ($6.95)",
     amountCents: 695,
   },
-  {
-    method: "delivery",
-    displayName: "Local Delivery - Up to 15 miles ($5; $25 minimum)",
-    amountCents: 500,
-    minimumSubtotalCents: 2500,
-  },
-  {
-    method: "delivery",
-    displayName: "Local Delivery - 15-30 miles ($8; $35 minimum)",
-    amountCents: 800,
-    minimumSubtotalCents: 3500,
-  },
-  {
-    method: "delivery",
-    displayName: "Local Delivery - 30-50 miles ($12; $50 minimum)",
-    amountCents: 1200,
-    minimumSubtotalCents: 5000,
-  },
+  ...Object.values(localDeliveryTiers).map((tier) => ({
+    method: "delivery" as const,
+    deliveryTierId: tier.id,
+    displayName: tier.checkoutDisplayName,
+    amountCents: tier.amountCents,
+    minimumSubtotalCents: tier.minimumSubtotalCents,
+  })),
 ];
 
 function supportsMethod(label: string, method: FulfillmentMethod) {
@@ -74,17 +66,23 @@ export function getProductFulfillmentDisplay(label: string) {
 export function getCheckoutFulfillmentOptions(
   subtotalCents: number,
   productFulfillment: readonly string[],
+  deliveryZip?: string,
 ) {
   if (productFulfillment.length === 0) return [];
+  const deliveryTier = deliveryZip === undefined ? null : getDeliveryTierForZip(deliveryZip);
 
   return checkoutOptions.filter((option) => {
     const allProductsSupportMethod = productFulfillment.every((label) =>
       supportsMethod(label, option.method),
     );
+    const matchesDeliveryZip =
+      option.method !== "delivery" ||
+      deliveryZip === undefined ||
+      option.deliveryTierId === deliveryTier?.id;
     const meetsMinimum =
       option.minimumSubtotalCents === undefined ||
       subtotalCents >= option.minimumSubtotalCents;
-    return allProductsSupportMethod && meetsMinimum;
+    return allProductsSupportMethod && matchesDeliveryZip && meetsMinimum;
   });
 }
 
@@ -104,12 +102,13 @@ export const fulfillmentPolicySections = [
   {
     heading: "Local Delivery (within 50 miles)",
     paragraphs: [
-      "Local delivery is available within 50 miles of our farmstand. The delivery address determines the distance tier, and the cart subtotal must meet that tier's minimum.",
+      "Local delivery is available in the ZIP codes shown by the cart's delivery checker. The cart subtotal must meet the matching tier's minimum.",
     ],
     bullets: [
       "Up to 15 miles ($5 fee, $25 order minimum).",
       "15–30 miles ($8 fee, $35 order minimum).",
       "30–50 miles ($12 fee, $50 order minimum).",
+      "Central Point and Medford (ZIPs 97502, 97501, and 97504) are included in the $12 fee, $50 minimum tier, with deliveries scheduled once per week.",
     ],
   },
   {

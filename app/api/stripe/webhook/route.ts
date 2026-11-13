@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { checkoutOrders, orders } from "@/db/schema";
 import { getDb } from "@/db";
 import { getCheckoutFulfillmentOptions } from "@/lib/fulfillment";
+import { getDeliveryTierForZip } from "@/lib/delivery-zips";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,11 @@ type CheckoutSession = {
   collected_information?: {
     shipping_details?: StripeShippingDetails | null;
   } | null;
-  metadata?: { order_id?: string } | null;
+  metadata?: {
+    order_id?: string;
+    delivery_tier?: string;
+    delivery_zip?: string;
+  } | null;
 };
 
 function constantTimeEqual(left: string, right: string) {
@@ -211,8 +216,24 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
       order.amountCents,
       items.map((item) => item.fulfillment ?? ""),
     );
+    const requestedDeliveryTier = session.metadata?.delivery_tier;
+    const requestedDeliveryZip = session.metadata?.delivery_zip;
+    if (
+      requestedDeliveryTier &&
+      (!requestedDeliveryZip ||
+        getDeliveryTierForZip(requestedDeliveryZip)?.id !== requestedDeliveryTier)
+    ) {
+      console.error("Paid Checkout session has an invalid delivery ZIP tier.", orderId);
+      return Response.json({ error: "Checkout delivery tier does not match the ZIP code." }, { status: 400 });
+    }
     const selectedOption = shippingCost
-      ? availableOptions.find((option) => option.amountCents === shippingCost.amount_subtotal)
+      ? availableOptions.find(
+          (option) =>
+            option.amountCents === shippingCost.amount_subtotal &&
+            (option.method !== "delivery" ||
+              !requestedDeliveryTier ||
+              option.deliveryTierId === requestedDeliveryTier),
+        )
       : undefined;
     if (
       !shippingCost ||

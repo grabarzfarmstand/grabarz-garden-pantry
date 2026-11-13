@@ -46,3 +46,12 @@ export const orders = sqliteTable("orders", {
   createdAt: integer("created_at").notNull(),
   paidAt: integer("paid_at").notNull(),
 });
+
+export const customerMessages = sqliteTable("customer_messages", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  topic: text("topic").notNull(),
+  message: text("message").notNull(),
+  createdAt: integer("created_at").notNull(),
+});

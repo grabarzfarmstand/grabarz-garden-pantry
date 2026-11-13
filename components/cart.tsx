@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { getDeliveryTierForZip } from "@/lib/delivery-zips";
 
 type Product = {
   id: string;
@@ -37,6 +38,20 @@ function money(cents: number) {
     style: "currency",
     currency: "USD",
   }).format(cents / 100);
+}
+
+function deliveryZipMessage(zip: string, subtotalCents: number) {
+  if (!zip) return "Enter your ZIP code to check local delivery availability.";
+  if (zip.length < 5) return "Enter all 5 digits to check local delivery.";
+
+  const tier = getDeliveryTierForZip(zip);
+  if (!tier) {
+    return "Local delivery is not available for this ZIP. Choose $6.95 Mail Order Shipping or free Scheduled In-Town Pickup in Cave Junction at checkout.";
+  }
+  if (subtotalCents < tier.minimumSubtotalCents) {
+    return `${tier.description} Add ${money(tier.minimumSubtotalCents - subtotalCents)} to your cart to qualify.`;
+  }
+  return `${tier.description} Your matching delivery option will appear at checkout.`;
 }
 
 function saveCart(cart: CartLine[]) {
@@ -77,6 +92,7 @@ export function CartButton() {
   const [open, setOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkingOut, setCheckingOut] = useState(false);
+  const [deliveryZip, setDeliveryZip] = useState("");
 
   useEffect(() => {
     const update = () => setCart(readCart());
@@ -127,10 +143,18 @@ export function CartButton() {
     setCheckingOut(true);
     setCheckoutError("");
     try {
+      const requestBody: {
+        items: { id: string; quantity: number }[];
+        deliveryZip?: string;
+      } = {
+        items: cart.map(({ id, quantity }) => ({ id, quantity })),
+      };
+      if (/^\d{5}$/.test(deliveryZip)) requestBody.deliveryZip = deliveryZip;
+
       const response = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart.map(({ id, quantity }) => ({ id, quantity })) }),
+        body: JSON.stringify(requestBody),
       });
       let result: unknown;
       try {
@@ -192,6 +216,24 @@ export function CartButton() {
               Close
             </button>
             <h2>Your cart</h2>
+            <section className="cart-delivery-check" aria-labelledby="cart-delivery-title">
+              <h3 id="cart-delivery-title">Check local delivery</h3>
+              <label htmlFor="cart-delivery-zip">Delivery ZIP code</label>
+              <input
+                id="cart-delivery-zip"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={5}
+                value={deliveryZip}
+                onChange={(event) =>
+                  setDeliveryZip(event.target.value.replace(/\D/g, "").slice(0, 5))
+                }
+              />
+              <p role="status" aria-live="polite">
+                {deliveryZipMessage(deliveryZip, total)}
+              </p>
+            </section>
 
             {cart.length === 0 ? (
               <p>Your cart is empty.</p>

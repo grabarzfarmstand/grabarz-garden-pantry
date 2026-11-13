@@ -65,6 +65,7 @@ export function StorefrontHeader() {
         <div className="navlinks">
           <a href="/shop">Shop</a>
           <a className="how-link" href="/how-it-works">How it works</a>
+          <a href="/contact">Contact</a>
           <CartButton />
         </div>
       </nav>
@@ -81,6 +82,7 @@ export function StorefrontFooter() {
         <small>Secure checkout is available for published items.</small>
         <nav className="footer-policy-links" aria-label="Store policies">
           <a href="/how-it-works">How it works</a>
+          <a href="/contact">Contact</a>
           <a href="/shipping-returns">Shipping, local delivery & returns</a>
           <a href="/terms">Terms & conditions</a>
           <a href="/privacy">Privacy policy</a>

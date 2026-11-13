@@ -41,6 +41,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Your cart is empty or invalid." }, { status: 400 });
   }
 
+  let deliveryZip: string | undefined;
+  if ("deliveryZip" in body) {
+    if (typeof body.deliveryZip !== "string" || !/^\d{5}$/.test(body.deliveryZip)) {
+      return Response.json({ error: "Enter a valid 5-digit delivery ZIP code." }, { status: 400 });
+    }
+    deliveryZip = body.deliveryZip;
+  }
+
   const quantities = new Map<string, number>();
   for (const item of body.items) {
     if (
@@ -118,6 +126,7 @@ export async function POST(request: Request) {
     const fulfillmentOptions = getCheckoutFulfillmentOptions(
       amountCents,
       lineItems.map((item) => item.fulfillment),
+      deliveryZip ?? "",
     );
     if (fulfillmentOptions.length === 0) {
       return Response.json(
@@ -151,6 +160,11 @@ export async function POST(request: Request) {
       success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancelled`,
     });
+    if (deliveryZip) params.set("metadata[delivery_zip]", deliveryZip);
+    const deliveryOption = fulfillmentOptions.find((option) => option.method === "delivery");
+    if (deliveryOption?.deliveryTierId) {
+      params.set("metadata[delivery_tier]", deliveryOption.deliveryTierId);
+    }
     fulfillmentOptions.forEach((option, index) => {
       const optionPrefix = `shipping_options[${index}][shipping_rate_data]`;
       params.set(`${optionPrefix}[type]`, "fixed_amount");
