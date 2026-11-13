@@ -56,7 +56,7 @@ export function AddToCartButton({ product }: { product: Product }) {
   setAdded(true);
   window.setTimeout(() => setAdded(false), 3000);
 }} disabled={product.stock < 1}>
-      {product.stock > 0 ? (added ? "Added!" : "Add to cart") : "Sold out"}
+      {product.stock > 0 ? (added ? "Added!" : "Add to cart") : "Sold Out"}
     </button>
   );
 }

@@ -140,7 +140,10 @@ export function ProductGrid({
         <article className="product" key={item.id}>
           <img src={`/api/images?key=${encodeURIComponent(item.imageKey)}`} alt={item.name} />
           <div className="product-body">
-            <span className="pill">{item.category}</span>
+            <div className="product-badges">
+              <span className="pill">{item.category}</span>
+              {item.quantity === 0 && <span className="sold-out-badge" role="status">Sold Out</span>}
+            </div>
             <h2>{item.name}</h2>
             <p>{item.description}</p>
             <div className="product-meta">
@@ -150,7 +153,7 @@ export function ProductGrid({
                   currency: "USD",
                 }).format(item.priceCents / 100)}
               </strong>
-              <span>{item.quantity} available</span>
+              <span>{item.quantity > 0 ? `${item.quantity} available` : "Sold out"}</span>
             </div>
             <div className="fulfillment">{item.fulfillment}</div>
             <AddToCartButton

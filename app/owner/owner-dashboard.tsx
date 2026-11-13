@@ -127,19 +127,19 @@ export default function OwnerDashboard({ initialItems, displayName }: { initialI
             <div className="field"><label htmlFor="fulfillment">How customers receive it</label><select id="fulfillment" name="fulfillment" required><option>Local delivery</option><option>Mail order</option><option>Mail order or local delivery</option></select></div>
             <div className="field"><label htmlFor="description">Short description</label><textarea id="description" name="description" placeholder="Tell customers what makes it special." required /></div>
             <label className="checkline"><input name="published" type="checkbox" value="yes" /> Show this product in the store immediately</label>
-            {listMessage && <p className="form-message" role="status">{listMessage}</p>}
+            {message && <p className="form-message" role="status">{message}</p>}
             <button className="save-button" disabled={busy}>{busy ? "Uploading and saving…" : "Upload product"}</button>
           </form>
         </section>
         <section className="owner-card"><h2>Your products</h2><p className="helper">Drafts stay hidden. Published products appear under “Available now.”</p>
-          {message && <p className="form-message" role="status">{message}</p>}
+          {listMessage && <p className="form-message" role="status">{listMessage}</p>}
           <div className="owner-list">{items.length ? items.map((item) => <article className="owner-item" key={item.id}>
             <div className="owner-thumbnail"><img src={imageUrl(item.imageKey)} alt={item.name} onError={(event) => {
               event.currentTarget.hidden = true;
               event.currentTarget.parentElement?.classList.add("missing");
             }} /></div>
             <div className="owner-item-content">
-              <span className={"status " + item.status}>{item.status}</span><h3>{item.name}</h3>
+              <span className={"status " + item.status}>{item.status === "published" ? "Published" : "Hidden"}</span><h3>{item.name}</h3>
               <p>${(item.priceCents / 100).toFixed(2)} · {item.quantity} available · {item.category}</p>
               <div className="owner-actions">
                 <button onClick={() => changeStatus(item)}>{item.status === "published" ? "Hide from store" : "Publish to store"}</button>
