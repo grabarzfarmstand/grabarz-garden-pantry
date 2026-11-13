@@ -10,8 +10,8 @@ type Product = {
 };
 
 type CartLine = Product & { quantity: number };
-
 const CART_KEY = "grabarz-market-cart";
+const SHIPPING_CENTS = 750;
 
 function readCart(): CartLine[] {
   try {
@@ -35,6 +35,7 @@ function saveCart(cart: CartLine[]) {
 
 export function AddToCartButton({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
+
   function addToCart() {
     const cart = readCart();
     const existing = cart.find((line) => line.id === product.id);
@@ -51,11 +52,15 @@ export function AddToCartButton({ product }: { product: Product }) {
   }
 
   return (
-    <button type="button" onClick={() => {
-  addToCart();
-  setAdded(true);
-  window.setTimeout(() => setAdded(false), 3000);
-}} disabled={product.stock < 1}>
+    <button
+      type="button"
+      onClick={() => {
+        addToCart();
+        setAdded(true);
+        window.setTimeout(() => setAdded(false), 3000);
+      }}
+      disabled={product.stock < 1}
+    >
       {product.stock > 0 ? (added ? "Added!" : "Add to cart") : "Sold out"}
     </button>
   );
@@ -64,6 +69,8 @@ export function AddToCartButton({ product }: { product: Product }) {
 export function CartButton() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [open, setOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
     const update = () => setCart(readCart());
@@ -73,7 +80,7 @@ export function CartButton() {
   }, []);
 
   const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const total = cart.reduce(
+  const subtotal = cart.reduce(
     (sum, line) => sum + line.priceCents * line.quantity,
     0,
   );
@@ -82,10 +89,7 @@ export function CartButton() {
     const next = readCart()
       .map((line) =>
         line.id === id
-          ? {
-              ...line,
-              quantity: Math.min(line.stock, line.quantity + amount),
-            }
+          ? { ...line, quantity: Math.min(line.stock, line.quantity + amount) }
           : line,
       )
       .filter((line) => line.quantity > 0);
@@ -95,6 +99,30 @@ export function CartButton() {
 
   function removeItem(id: string) {
     saveCart(readCart().filter((line) => line.id !== id));
+  }
+
+  async function startCheckout() {
+    setCheckoutError("");
+    setCheckoutLoading(true);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(({ id, quantity }) => ({ id, quantity })),
+        }),
+      });
+      const result = await response.json() as { url?: string; error?: string; diagnostic?: string };
+      if (!response.ok || !result.url) {
+        setCheckoutError([result.error || "We couldn't start checkout. Please try again.", result.diagnostic].filter(Boolean).join(" "));
+        setCheckoutLoading(false);
+        return;
+      }
+      window.location.assign(result.url);
+    } catch {
+      setCheckoutError("We couldn't reach secure checkout. Please check your connection and try again.");
+      setCheckoutLoading(false);
+    }
   }
 
   return (
@@ -127,9 +155,7 @@ export function CartButton() {
               padding: 24,
             }}
           >
-            <button type="button" onClick={() => setOpen(false)}>
-              Close
-            </button>
+            <button type="button" onClick={() => setOpen(false)}>Close</button>
             <h2>Your cart</h2>
 
             {cart.length === 0 ? (
@@ -139,39 +165,28 @@ export function CartButton() {
                 {cart.map((line) => (
                   <div
                     key={line.id}
-                    style={{
-                      borderBottom: "1px solid #ddd6c8",
-                      padding: "14px 0",
-                    }}
+                    style={{ borderBottom: "1px solid #ddd6c8", padding: "14px 0" }}
                   >
                     <strong>{line.name}</strong>
                     <p>{money(line.priceCents)} each</p>
-                    <button
-                      type="button"
-                      onClick={() => changeQuantity(line.id, -1)}
-                    >
-                      −
-                    </button>{" "}
+                    <button type="button" onClick={() => changeQuantity(line.id, -1)}>−</button>{" "}
                     {line.quantity}{" "}
                     <button
                       type="button"
                       onClick={() => changeQuantity(line.id, 1)}
                       disabled={line.quantity >= line.stock}
-                    >
-                      +
-                    </button>{" "}
-                    <button
-                      type="button"
-                      onClick={() => removeItem(line.id)}
-                    >
-                      Remove
-                    </button>
+                    >+</button>{" "}
+                    <button type="button" onClick={() => removeItem(line.id)}>Remove</button>
                   </div>
                 ))}
 
-                <h3>Subtotal: {money(total)}</h3>
-                <button type="button" disabled>
-                  Checkout setup is next
+                <h3>Subtotal: {money(subtotal)}</h3>
+                <p>USPS flat-rate shipping: {money(SHIPPING_CENTS)}</p>
+                <p><strong>Estimated total: {money(subtotal + SHIPPING_CENTS)}</strong></p>
+                <p>Final total is shown securely before you pay.</p>
+                {checkoutError && <p role="alert">{checkoutError}</p>}
+                <button type="button" onClick={startCheckout} disabled={checkoutLoading}>
+                  {checkoutLoading ? "Opening secure checkout…" : "Continue to secure checkout"}
                 </button>
               </>
             )}
