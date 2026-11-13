@@ -112,9 +112,9 @@ export function CartButton() {
           items: cart.map(({ id, quantity }) => ({ id, quantity })),
         }),
       });
-      const result = await response.json() as { url?: string; error?: string };
+      const result = await response.json() as { url?: string; error?: string; diagnostic?: string };
       if (!response.ok || !result.url) {
-        setCheckoutError(result.error || "We couldn't start checkout. Please try again.");
+        setCheckoutError([result.error || "We couldn't start checkout. Please try again.", result.diagnostic].filter(Boolean).join(" "));
         setCheckoutLoading(false);
         return;
       }
