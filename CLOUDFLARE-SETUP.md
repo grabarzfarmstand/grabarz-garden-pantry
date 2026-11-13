@@ -18,7 +18,7 @@ Verification completed: dependency installation, production build (`pnpm build`)
 2. Configure a Cloudflare Access self-hosted application for the chosen hostname's `/owner` and `/api/owner/*` paths, including any additional hostnames used for administration. Allow ONLY `grabarzfarmstand@gmail.com`, with email one-time PIN or another explicitly chosen login method. Keep public storefront paths outside this policy. Do not create an Allow Everyone or Bypass rule for owner paths.
 3. Set `ACCESS_TEAM_DOMAIN` (hostname only, ending in `.cloudflareaccess.com`) and `ACCESS_AUD` (the application's audience tag) in wrangler.jsonc. These are configuration identifiers, not API secrets. Verify the account's plan and any charge before enabling services.
 4. Run `pnpm build`. Deploy through Cloudflare Workers, not Pages ZIP upload: `pnpm deploy`. This requires the owner's Cloudflare authorization. Never put API tokens in this repository or in chat.
-5. Apply the checkout-order migration to the existing D1 database: `pnpm exec wrangler d1 migrations apply grabarz-database --remote`. For local development, use `pnpm exec wrangler d1 migrations apply grabarz-database --local`.
+5. Apply the checkout-order migration to the existing D1 database: `pnpm exec wrangler d1 migrations apply grabarz-checkout-test --remote`. For local development, use `pnpm exec wrangler d1 migrations apply grabarz-checkout-test --local`.
 6. Configure these Worker variables in Cloudflare's Worker settings (or locally in the ignored `.dev.vars` file):
    - `STRIPE_SECRET_KEY`: Stripe secret key, stored as a secret.
    - `STRIPE_WEBHOOK_SECRET`: signing secret for the configured Stripe webhook endpoint, stored as a secret.
