@@ -6,6 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "account_id": "4615c0ae81bff60c4cef0e83593ac743",
   "d1_databases": [{ "binding": "DB", "database_name": "grabarz-database", "database_id": "a2173aed-2041-4b71-854a-bab83b39a03e", "migrations_dir": "migrations" }],
+  "previews": {
+    "d1_databases": [{
+      "binding": "DB",
+      "database_id": "7268a552-23bb-493c-bc94-1be05cf908eb"
+    }]
+  },
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "grabarz-storage" }],
-    "vars": { "OWNER_EMAIL": "grabarzfarmstand@gmail.com", "ACCESS_TEAM_DOMAIN": "quiet-waterfall-8017.cloudflareaccess.com", "ACCESS_AUD": "c9f824c8b048eca72042479e073a923a4112b7c8eb9eef2195661c75024e60e4" }
+  "vars": { "OWNER_EMAIL": "grabarzfarmstand@gmail.com", "ACCESS_TEAM_DOMAIN": "quiet-waterfall-8017.cloudflareaccess.com", "ACCESS_AUD": "c9f824c8b048eca72042479e073a923a4112b7c8eb9eef2195661c75024e60e4" }
 }
