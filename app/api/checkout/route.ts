@@ -3,42 +3,22 @@ import { env } from "cloudflare:workers";
 import { checkoutOrders, products } from "@/db/schema";
 import { getDb } from "@/db";
 import { getCheckoutFulfillmentOptions } from "@/lib/fulfillment";
+import { getStripeConfig } from "@/lib/stripe-config";
 
 export const dynamic = "force-dynamic";
 
 const MAX_CART_LINES = 30;
 const MAX_QUANTITY = 99;
 
-function getStripeConfig() {
-  const secretKey = env.STRIPE_SECRET_KEY;
-  const publishableKey = env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-  const secretMode = secretKey?.startsWith("sk_live_")
-    ? "live"
-    : secretKey?.startsWith("sk_test_")
-      ? "test"
-      : null;
-  const publishableMode = publishableKey?.startsWith("pk_live_")
-    ? "live"
-    : publishableKey?.startsWith("pk_test_")
-      ? "test"
-      : null;
-
-  if (!secretKey || !publishableKey || !secretMode || !publishableMode) {
-    return { error: "Stripe keys are missing or invalid." };
-  }
-  if (secretMode !== publishableMode) {
-    return { error: "Stripe secret and publishable keys must use the same mode." };
-  }
-
-  return { secretKey };
-}
-
 export async function POST(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin) {
     return Response.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
-  const config = getStripeConfig();
+  const config = getStripeConfig(
+    env.STRIPE_SECRET_KEY,
+    env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  );
   if ("error" in config) {
     return Response.json({ error: config.error }, { status: 503 });
   }

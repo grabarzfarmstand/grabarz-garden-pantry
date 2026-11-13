@@ -349,7 +349,7 @@ async function applyPaidCheckout(event: StripeEvent, session: CheckoutSession) {
 }
 
 export async function POST(request: Request) {
-  const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = env.STRIPE_WEBHOOK_SECRET?.trim();
   if (!webhookSecret) {
     return Response.json({ error: "Stripe webhook secret is not configured." }, { status: 503 });
   }
