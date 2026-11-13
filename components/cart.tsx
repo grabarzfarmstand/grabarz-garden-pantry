@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type Product = {
   id: string;
@@ -12,6 +12,17 @@ type Product = {
 type CartLine = Product & { quantity: number };
 
 const CART_KEY = "grabarz-market-cart";
+const checkoutButtonStyle: CSSProperties = {
+  width: "100%",
+  marginTop: 16,
+  border: 0,
+  borderRadius: 999,
+  padding: "14px 18px",
+  backgroundColor: "#2f4d36",
+  color: "#fff",
+  fontSize: "1rem",
+  fontWeight: 800,
+};
 
 function readCart(): CartLine[] {
   try {
@@ -69,13 +80,14 @@ export function CartButton() {
 
   useEffect(() => {
     const update = () => setCart(readCart());
-    update();
     window.addEventListener("grabarz-cart-change", update);
 
     const url = new URL(window.location.href);
     const checkoutResult = url.searchParams.get("checkout");
     if (checkoutResult === "success") {
       saveCart([]);
+    } else {
+      update();
     }
     if (checkoutResult === "success" || checkoutResult === "cancelled") {
       url.searchParams.delete("checkout");
@@ -220,7 +232,17 @@ export function CartButton() {
 
                 <h3>Subtotal: {money(total)}</h3>
                 {checkoutError && <p role="alert">{checkoutError}</p>}
-                <button type="button" onClick={startCheckout} disabled={checkingOut}>
+                <button
+                  type="button"
+                  onClick={startCheckout}
+                  disabled={checkingOut}
+                  aria-busy={checkingOut}
+                  style={{
+                    ...checkoutButtonStyle,
+                    cursor: checkingOut ? "wait" : "pointer",
+                    opacity: checkingOut ? 0.75 : 1,
+                  }}
+                >
                   {checkingOut ? "Opening checkout…" : "Checkout"}
                 </button>
               </>

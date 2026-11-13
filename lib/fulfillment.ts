@@ -8,12 +8,12 @@ export type CheckoutFulfillmentOption = {
 };
 
 export const productFulfillmentChoices = [
-  "Scheduled In-Town Pickup",
-  "Mail order",
-  "Local delivery",
+  "Scheduled In-Town Pickup only",
+  "Mail order only",
+  "Local delivery only",
   "Scheduled In-Town Pickup or Mail order",
   "Scheduled In-Town Pickup or Local delivery",
-  "Mail order or local delivery",
+  "Mail order or Local delivery (No Pickup)",
   "Scheduled In-Town Pickup, Mail order, or Local delivery",
 ];
 
@@ -50,9 +50,25 @@ const checkoutOptions: CheckoutFulfillmentOption[] = [
 
 function supportsMethod(label: string, method: FulfillmentMethod) {
   const normalized = label.toLowerCase();
-  if (method === "pickup") return normalized.includes("pickup");
+  if (method === "pickup") {
+    if (normalized.includes("no pickup")) return false;
+    if (normalized.includes("pickup")) return true;
+    return !normalized.includes("only");
+  }
+  if (normalized.includes("only")) return normalized.includes(method === "mail" ? "mail order" : "local delivery");
   if (method === "mail") return normalized.includes("mail order");
   return normalized.includes("local delivery");
+}
+
+export function getProductFulfillmentDisplay(label: string) {
+  const methods = (["pickup", "mail", "delivery"] as const)
+    .filter((method) => supportsMethod(label, method))
+    .map((method) => {
+      if (method === "pickup") return "Scheduled In-Town Pickup";
+      if (method === "mail") return "Mail order";
+      return "Local delivery";
+    });
+  return methods.join(", ");
 }
 
 export function getCheckoutFulfillmentOptions(

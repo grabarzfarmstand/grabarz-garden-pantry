@@ -239,7 +239,7 @@ export default function OwnerDashboard({
             <div className="field"><label htmlFor="fulfillment">How customers receive it</label><select id="fulfillment" name="fulfillment" defaultValue="" required>
               <option value="" disabled>Choose fulfillment options</option>
               {productFulfillmentChoices.map((choice) => <option key={choice}>{choice}</option>)}
-            </select></div>
+            </select><small>Pickup is included unless you choose an “only” option or “No Pickup.”</small></div>
             <div className="field"><label htmlFor="description">Short description</label><textarea id="description" name="description" placeholder="Tell customers what makes it special." required /></div>
             <label className="checkline"><input name="published" type="checkbox" value="yes" /> Show this product in the store immediately</label>
             {message && <p className="form-message" role="status">{message}</p>}
@@ -271,7 +271,7 @@ export default function OwnerDashboard({
                 <div className="field"><label htmlFor={`edit-fulfillment-${item.id}`}>How customers receive it</label><select id={`edit-fulfillment-${item.id}`} name="fulfillment" defaultValue={item.fulfillment} required>
                   {productFulfillmentChoices.map((choice) => <option key={choice}>{choice}</option>)}
                   {!productFulfillmentChoices.includes(item.fulfillment) && <option>{item.fulfillment}</option>}
-                </select></div>
+                </select><small>Pickup is included unless you choose an “only” option or “No Pickup.”</small></div>
                 <div className="field"><label htmlFor={`edit-photo-${item.id}`}>Replace photo (optional)</label><input id={`edit-photo-${item.id}`} name="photo" type="file" accept="image/jpeg,image/png,image/webp" /><small>Leave blank to keep the current photo.</small></div>
                 <div className="owner-edit-actions">
                   <button className="save-button" disabled={savingId === item.id}>{savingId === item.id ? "Saving…" : "Save changes"}</button>

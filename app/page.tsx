@@ -15,7 +15,24 @@ export default async function Home({
     <main>
       <StorefrontHeader />
       {checkoutResult === "success" && (
-        <p role="status">Checkout complete. Your payment is being confirmed.</p>
+        <p
+          role="status"
+          aria-live="polite"
+          style={{
+            width: "min(1160px, calc(100% - 36px))",
+            margin: "18px auto",
+            padding: "16px 20px",
+            border: "1px solid #dfc9a7",
+            borderLeft: "5px solid #49634a",
+            borderRadius: 12,
+            background: "#f8efe2",
+            color: "#29372c",
+            fontWeight: 700,
+          }}
+        >
+          Thank you! Your order and payment have been received. We’ll be in
+          touch to coordinate any pickup or delivery details.
+        </p>
       )}
       {checkoutResult === "cancelled" && (
         <p role="status">Checkout was cancelled. Your cart is still available.</p>

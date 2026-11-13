@@ -1,4 +1,5 @@
 import { AddToCartButton, CartButton } from "@/components/cart";
+import { getProductFulfillmentDisplay } from "@/lib/fulfillment";
 
 /* eslint-disable @next/next/no-html-link-for-pages */
 
@@ -161,7 +162,7 @@ export function ProductGrid({
               </strong>
               <span>{item.quantity > 0 ? `${item.quantity} available` : "Sold out"}</span>
             </div>
-            <div className="fulfillment">{item.fulfillment}</div>
+            <div className="fulfillment">{getProductFulfillmentDisplay(item.fulfillment)}</div>
             <AddToCartButton
               product={{
                 id: item.id,
