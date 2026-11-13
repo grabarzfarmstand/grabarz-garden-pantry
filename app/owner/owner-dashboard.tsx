@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+
+/* eslint-disable @next/next/no-html-link-for-pages */
 
 type Product = {
   id: string;
@@ -114,7 +115,7 @@ export default function OwnerDashboard({ initialItems, displayName }: { initialI
   }
 
   return <main className="owner-page">
-    <header className="owner-header"><div className="wrap"><div><h1>Owner Dashboard</h1><p>Welcome, {displayName}. Add and manage your market products here.</p></div><Link href="/">View the storefront →</Link></div></header>
+    <header className="owner-header"><div className="wrap"><div><h1>Owner Dashboard</h1><p>Welcome, {displayName}. Add and manage your market products here.</p></div><a href="/">View the storefront →</a></div></header>
     <div className="owner-main wrap">
       <section className="owner-intro"><h2>Your simple upload routine</h2><ol><li>Choose one clear product photo.</li><li>Fill in the product details.</li><li>Save it as a draft, or check “Show in the store” when it is ready.</li></ol></section>
       <div className="owner-grid">
