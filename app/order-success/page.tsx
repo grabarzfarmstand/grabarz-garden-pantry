@@ -16,7 +16,9 @@ export default function OrderSuccessPage() {
       <h1>Thank you for your order!</h1>
       <p>Your payment was submitted securely through Stripe. We’ll prepare your order after Stripe confirms the payment.</p>
       <p>Keep an eye out for your Stripe receipt and any follow-up from us about shipping.</p>
-      <a href="/#shop">Return to the shop</a>
+      <a className="button sage" href="/#shop" style={{ fontSize: "1.05rem", minHeight: 54 }}>
+        Continue shopping
+      </a>
     </main>
   );
 }
