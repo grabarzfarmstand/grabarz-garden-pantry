@@ -34,6 +34,7 @@ function saveCart(cart: CartLine[]) {
 }
 
 export function AddToCartButton({ product }: { product: Product }) {
+  const [added, setAdded] = useState(false);
   function addToCart() {
     const cart = readCart();
     const existing = cart.find((line) => line.id === product.id);
@@ -50,8 +51,12 @@ export function AddToCartButton({ product }: { product: Product }) {
   }
 
   return (
-    <button type="button" onClick={addToCart} disabled={product.stock < 1}>
-      {product.stock > 0 ? "Add to cart" : "Sold out"}
+    <button type="button" onClick={() => {
+  addToCart();
+  setAdded(true);
+  window.setTimeout(() => setAdded(false), 1500);
+}} disabled={product.stock < 1}>
+      {product.stock > 0 ? (added ? "Added!" : "Add to cart") : "Sold out"}
     </button>
   );
 }
