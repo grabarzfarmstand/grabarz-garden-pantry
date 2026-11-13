@@ -64,7 +64,6 @@ export function StorefrontHeader() {
         <div className="navlinks">
           <a href="/shop">Shop</a>
           <a className="how-link" href="/#how">How it works</a>
-          <a className="owner-link" href="/owner">Owner area</a>
           <CartButton />
         </div>
       </nav>
@@ -84,6 +83,7 @@ export function StorefrontFooter() {
           <a href="/terms">Terms & conditions</a>
           <a href="/privacy">Privacy policy</a>
         </nav>
+        <a className="footer-owner-link" href="/owner">Owner area</a>
       </div>
     </footer>
   );
