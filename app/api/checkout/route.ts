@@ -80,7 +80,6 @@ export async function POST(request: Request) {
     form.set("shipping_options[0][shipping_rate_data][display_name]", "USPS flat-rate shipping");
     form.set("metadata[order_id]", orderId);
     form.set("payment_intent_data[metadata][order_id]", orderId);
-    form.set("payment_method_types[0]", "card");
     lines.forEach((line, index) => {
       form.set(`line_items[${index}][price_data][currency]`, "usd");
       form.set(`line_items[${index}][price_data][unit_amount]`, String(line.priceCents));
