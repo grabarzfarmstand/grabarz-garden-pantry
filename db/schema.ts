@@ -18,3 +18,15 @@ export const products = sqliteTable("products", {
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });
+
+export const checkoutOrders = sqliteTable("checkout_orders", {
+  id: text("id").primaryKey(),
+  itemsJson: text("items_json").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull().default("usd"),
+  stripeSessionId: text("stripe_session_id").unique(),
+  status: text("status").notNull().default("pending"),
+  stripeEventId: text("stripe_event_id"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});

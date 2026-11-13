@@ -64,11 +64,25 @@ export function AddToCartButton({ product }: { product: Product }) {
 export function CartButton() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [open, setOpen] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     const update = () => setCart(readCart());
     update();
     window.addEventListener("grabarz-cart-change", update);
+
+    const url = new URL(window.location.href);
+    const checkoutResult = url.searchParams.get("checkout");
+    if (checkoutResult === "success") {
+      saveCart([]);
+    }
+    if (checkoutResult === "success" || checkoutResult === "cancelled") {
+      url.searchParams.delete("checkout");
+      url.searchParams.delete("session_id");
+      window.history.replaceState({}, "", url);
+    }
+
     return () => window.removeEventListener("grabarz-cart-change", update);
   }, []);
 
@@ -97,9 +111,44 @@ export function CartButton() {
     saveCart(readCart().filter((line) => line.id !== id));
   }
 
+  async function startCheckout() {
+    setCheckingOut(true);
+    setCheckoutError("");
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: cart.map(({ id, quantity }) => ({ id, quantity })) }),
+      });
+      let result: unknown;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("We could not start checkout. Please try again.");
+      }
+      if (
+        !response.ok ||
+        !result ||
+        typeof result !== "object" ||
+        !("url" in result) ||
+        typeof result.url !== "string"
+      ) {
+        const message =
+          result && typeof result === "object" && "error" in result && typeof result.error === "string"
+            ? result.error
+            : "We could not start checkout. Please try again.";
+        throw new Error(message);
+      }
+      window.location.assign(result.url);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "We could not start checkout. Please try again.");
+      setCheckingOut(false);
+    }
+  }
+
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)}>
+      <button className="cart-button" type="button" onClick={() => setOpen(true)}>
         Cart ({itemCount})
       </button>
 
@@ -170,8 +219,9 @@ export function CartButton() {
                 ))}
 
                 <h3>Subtotal: {money(total)}</h3>
-                <button type="button" disabled>
-                  Checkout setup is next
+                {checkoutError && <p role="alert">{checkoutError}</p>}
+                <button type="button" onClick={startCheckout} disabled={checkingOut}>
+                  {checkingOut ? "Opening checkout…" : "Checkout"}
                 </button>
               </>
             )}
