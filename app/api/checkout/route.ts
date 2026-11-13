@@ -97,11 +97,12 @@ export async function POST(request: Request) {
       },
       body: form,
     });
-    const session = await stripeResponse.json() as { id?: string; url?: string; error?: { code?: string; message?: string } };
+    const session = await stripeResponse.json() as { id?: string; url?: string; error?: { code?: string; message?: string; type?: string; param?: string } };
     if (!stripeResponse.ok || !session.id || !session.url) {
       await db.update(orders).set({ status: "checkout_error" }).where(eq(orders.id, orderId));
       console.error("Stripe Checkout session creation failed", session.error?.message ?? stripeResponse.status);
-      return Response.json({ error: "We couldn't open secure checkout. Please try again.", diagnostic: session.error?.code ?? `stripe_http_${stripeResponse.status}` }, { status: 502 });
+      const diagnostic = (session.error?.message ?? session.error?.code ?? session.error?.type ?? `Stripe HTTP ${stripeResponse.status}`).replace(/(?:sk|rk)_(?:test|live)_[A-Za-z0-9_]+/gi, "[redacted key]").slice(0, 180);
+      return Response.json({ error: "We couldn't open secure checkout. Please try again.", diagnostic }, { status: 502 });
     }
 
     await db.update(orders).set({ stripeSessionId: session.id }).where(eq(orders.id, orderId));
