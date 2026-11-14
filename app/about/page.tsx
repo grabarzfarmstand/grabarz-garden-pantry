@@ -36,6 +36,15 @@ export default function AboutPage() {
               business to share.
             </p>
           </div>
+          <figure className="about-gallery">
+            <div className="about-gallery-grid">
+              <img src="/images/popup-stand-1.jpg" alt="The pop-up farmstand tent and handmade Farm Stand sign" loading="lazy" />
+              <img src="/images/popup-stand-2.jpg" alt="Produce, preserves, and fresh eggs arranged on the first farmstand table" loading="lazy" />
+              <img src="/images/popup-stand-3.jpg" alt="Jars of preserves, garden squash, and handmade goods at the pop-up stand" loading="lazy" />
+              <img src="/images/popup-stand-4.jpg" alt="Fresh plums, squash, preserves, and handmade goods at the farmstand" loading="lazy" />
+            </div>
+            <figcaption>Where it all started — our very first pop-up farmstand.</figcaption>
+          </figure>
           <p className="about-tagline">Grown • Gathered • Handmade</p>
         </div>
       </section>
