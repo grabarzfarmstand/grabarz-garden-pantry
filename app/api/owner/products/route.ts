@@ -26,6 +26,7 @@ export async function POST(request:Request) {
     const message=error instanceof Error?error.message:"";
     if(message==="UNAUTHENTICATED") return Response.json({error:"Please sign in again."},{status:401});
     if(message==="FORBIDDEN") return Response.json({error:"Owner access only."},{status:403});
+    if(message==="AUTH_NOT_CONFIGURED") return Response.json({error:"Owner authentication is not configured."},{status:503});
     return Response.json({error:"We could not save that product. Please try again."},{status:500});
   }
 }

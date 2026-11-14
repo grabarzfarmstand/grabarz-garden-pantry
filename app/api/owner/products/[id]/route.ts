@@ -18,7 +18,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "UNAUTHENTICATED") return Response.json({ error: "Please sign in again." }, { status: 401 });
-    if (message === "FORBIDDEN" || message === "AUTH_NOT_CONFIGURED") return Response.json({ error: "Owner access only." }, { status: 403 });
+    if (message === "FORBIDDEN") return Response.json({ error: "Owner access only." }, { status: 403 });
+    if (message === "AUTH_NOT_CONFIGURED") return Response.json({ error: "Owner authentication is not configured." }, { status: 503 });
     return Response.json({ error: "Unable to verify owner access." }, { status: 500 });
   }
 
@@ -112,6 +113,25 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   return Response.json({ product, warning });
 }
 export async function DELETE(_request:Request,context:{params:Promise<{id:string}>}) {
-  try { await requireOwnerApi(); const {id}=await context.params; const db=getDb(); const item=await db.select().from(products).where(eq(products.id,id)).limit(1); if(item[0]&&env.BUCKET) await env.BUCKET.delete(item[0].imageKey); await db.delete(products).where(eq(products.id,id)); return Response.json({ok:true}); }
-  catch { return Response.json({error:"Unable to delete product."},{status:403}); }
+  try {
+    await requireOwnerApi();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "UNAUTHENTICATED") return Response.json({ error: "Please sign in again." }, { status: 401 });
+    if (message === "FORBIDDEN") return Response.json({ error: "Owner access only." }, { status: 403 });
+    if (message === "AUTH_NOT_CONFIGURED") return Response.json({ error: "Owner authentication is not configured." }, { status: 503 });
+    return Response.json({ error: "Unable to verify owner access." }, { status: 500 });
+  }
+
+  try {
+    const { id } = await context.params;
+    const db = getDb();
+    const item = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    if (item[0] && env.BUCKET) await env.BUCKET.delete(item[0].imageKey);
+    await db.delete(products).where(eq(products.id, id));
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error("Could not delete the product.", error);
+    return Response.json({ error: "Unable to delete product." }, { status: 500 });
+  }
 }

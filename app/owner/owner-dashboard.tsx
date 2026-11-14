@@ -140,11 +140,13 @@ export default function OwnerDashboard({
   initialOrders,
   initialMessages,
   displayName,
+  authMethod,
 }: {
   initialItems: Product[];
   initialOrders: RecentOrder[];
   initialMessages: CustomerMessage[];
   displayName: string;
+  authMethod: "access" | "password";
 }) {
   const [items, setItems] = useState(initialItems);
   const [busy, setBusy] = useState(false);
@@ -238,7 +240,7 @@ export default function OwnerDashboard({
   }
 
   return <main className="owner-page">
-    <header className="owner-header"><div className="wrap"><div><h1>Owner Dashboard</h1><p>Welcome, {displayName}. Add and manage your market products here.</p></div><a href="/">View the storefront →</a></div></header>
+    <header className="owner-header"><div className="wrap"><div><h1>Owner Dashboard</h1><p>Welcome, {displayName}. Add and manage your market products here.</p></div><div className="owner-header-actions"><a href="/">View the storefront →</a>{authMethod === "password" && <form method="post" action="/api/owner/auth/logout"><button type="submit">Sign out</button></form>}</div></div></header>
     <div className="owner-main wrap">
       <section className="owner-intro"><h2>Your simple upload routine</h2><ol><li>Choose one clear product photo.</li><li>Fill in the product details.</li><li>Save it as a draft, or check “Show in the store” when it is ready.</li></ol></section>
       <div className="owner-grid">
