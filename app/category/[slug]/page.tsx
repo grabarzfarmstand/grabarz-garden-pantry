@@ -9,6 +9,8 @@ import {
   StorefrontHeader,
   storeCategories,
 } from "@/components/storefront";
+import { ComingSoonPage } from "@/components/coming-soon";
+import { shouldShowComingSoon } from "@/lib/storefront-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,8 @@ export default async function CategoryPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  if (await shouldShowComingSoon()) return <ComingSoonPage />;
+
   const { slug } = await params;
   const category = storeCategories.find((item) => item.slug === slug);
   if (!category) notFound();

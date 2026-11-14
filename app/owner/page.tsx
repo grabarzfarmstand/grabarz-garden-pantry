@@ -4,6 +4,7 @@ import { requireOwnerApi } from "@/lib/owner";
 import { getDb } from "@/db";
 import { customerMessages, orders, products } from "@/db/schema";
 import { MIN_OWNER_PASSWORD_LENGTH } from "@/lib/owner-session";
+import { getStorefrontMode } from "@/lib/storefront-mode";
 import OwnerDashboard from "./owner-dashboard";
 import { StorefrontFooter, StorefrontHeader } from "@/components/storefront";
 /* eslint-disable @next/next/no-html-link-for-pages */
@@ -94,10 +95,11 @@ export default async function OwnerPage({
     );
   }
   const db = getDb();
-  const [items, recentOrders, messages] = await Promise.all([
+  const [items, recentOrders, messages, storefrontMode] = await Promise.all([
     db.select().from(products).orderBy(desc(products.createdAt)),
     db.select().from(orders).where(gt(orders.totalPaidCents, 0)).orderBy(desc(orders.paidAt)).limit(50),
     db.select().from(customerMessages).orderBy(desc(customerMessages.createdAt)).limit(100),
+    getStorefrontMode(),
   ]);
-  return <><OwnerDashboard initialItems={items} initialOrders={recentOrders} initialMessages={messages} displayName={user.displayName} authMethod={user.authMethod} /><StorefrontFooter /></>;
+  return <><OwnerDashboard initialItems={items} initialOrders={recentOrders} initialMessages={messages} initialStorefrontMode={storefrontMode} displayName={user.displayName} authMethod={user.authMethod} /><StorefrontFooter /></>;
 }

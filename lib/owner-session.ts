@@ -1,4 +1,5 @@
 export const OWNER_SESSION_COOKIE = "__Host-grabarz_owner_session";
+export const OWNER_ACCESS_SESSION_COOKIE = "__Host-grabarz_owner_access";
 export const OWNER_SESSION_TTL_SECONDS = 12 * 60 * 60;
 export const MIN_OWNER_PASSWORD_LENGTH = 32;
 

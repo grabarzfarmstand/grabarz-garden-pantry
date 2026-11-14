@@ -1,10 +1,20 @@
 import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { OWNER_SESSION_COOKIE, MIN_OWNER_PASSWORD_LENGTH, verifyOwnerSessionToken } from "@/lib/owner-session";
+import {
+  MIN_OWNER_PASSWORD_LENGTH,
+  OWNER_ACCESS_SESSION_COOKIE,
+  OWNER_SESSION_COOKIE,
+  verifyOwnerSessionToken,
+} from "@/lib/owner-session";
 
 let keyDomain = "";
 let keys: ReturnType<typeof createRemoteJWKSet> | undefined;
+
+type VerifiedAccessPayload = {
+  email: string;
+  sub: string;
+};
 
 function readCookie(cookieHeader: string | null, name: string) {
   for (const cookie of cookieHeader?.split(";") ?? []) {
@@ -13,6 +23,46 @@ function readCookie(cookieHeader: string | null, name: string) {
     return cookie.slice(separator + 1).trim();
   }
   return null;
+}
+
+function getAccessKeys(domain: string) {
+  if (!keys || keyDomain !== domain) {
+    keyDomain = domain;
+    keys = createRemoteJWKSet(new URL(`https://${domain}/cdn-cgi/access/certs`));
+  }
+  return keys;
+}
+
+async function verifyAccessToken(
+  token: string,
+  domain: string,
+  audience: string,
+): Promise<VerifiedAccessPayload> {
+  const { payload } = await jwtVerify(token, getAccessKeys(domain), {
+    issuer: `https://${domain}`,
+    audience,
+    algorithms: ["RS256"],
+    requiredClaims: ["exp", "iat", "sub", "email"],
+  });
+  if (typeof payload.email !== "string" || typeof payload.sub !== "string") {
+    throw new Error("FORBIDDEN");
+  }
+  return { email: payload.email, sub: payload.sub };
+}
+
+function assertOwnerAccess(
+  payload: VerifiedAccessPayload,
+  ownerEmail: string,
+  assertedEmail?: string,
+) {
+  if (
+    typeof payload.email !== "string" ||
+    payload.email.toLowerCase() !== ownerEmail.toLowerCase() ||
+    (assertedEmail !== undefined && assertedEmail.toLowerCase() !== ownerEmail.toLowerCase()) ||
+    (assertedEmail !== undefined && assertedEmail.toLowerCase() !== payload.email.toLowerCase())
+  ) {
+    throw new Error("FORBIDDEN");
+  }
 }
 
 export async function requireOwnerApi() {
@@ -32,28 +82,28 @@ export async function requireOwnerApi() {
     /^[a-z0-9-]+\.cloudflareaccess\.com$/.test(domain) &&
     audience
   ) {
-    if (!keys || keyDomain !== domain) {
-      keyDomain = domain;
-      keys = createRemoteJWKSet(new URL(`https://${domain}/cdn-cgi/access/certs`));
-    }
-
     try {
-      const { payload } = await jwtVerify(token, keys, {
-        issuer: `https://${domain}`,
-        audience,
-        algorithms: ["RS256"],
-        requiredClaims: ["exp", "iat", "sub", "email"],
-      });
-      if (typeof payload.email !== "string" || typeof payload.sub !== "string") {
-        throw new Error("FORBIDDEN");
-      }
-      if (
-        payload.email.toLowerCase() !== ownerEmail.toLowerCase() ||
-        assertedEmail.toLowerCase() !== ownerEmail.toLowerCase() ||
-        assertedEmail.toLowerCase() !== payload.email.toLowerCase()
-      ) {
-        throw new Error("FORBIDDEN");
-      }
+      const payload = await verifyAccessToken(token, domain, audience);
+      assertOwnerAccess(payload, ownerEmail, assertedEmail);
+      return {
+        userId: payload.sub,
+        displayName: "Sandi",
+        email: payload.email,
+        authMethod: "access" as const,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message === "FORBIDDEN") throw error;
+    }
+  }
+
+  const accessSessionToken = readCookie(
+    requestHeaders.get("cookie"),
+    OWNER_ACCESS_SESSION_COOKIE,
+  );
+  if (accessSessionToken && domain && audience) {
+    try {
+      const payload = await verifyAccessToken(accessSessionToken, domain, audience);
+      assertOwnerAccess(payload, ownerEmail);
       return {
         userId: payload.sub,
         displayName: "Sandi",

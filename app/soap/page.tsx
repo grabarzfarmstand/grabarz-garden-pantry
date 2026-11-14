@@ -6,10 +6,14 @@ import {
   StorefrontFooter,
   StorefrontHeader,
 } from "@/components/storefront";
+import { ComingSoonPage } from "@/components/coming-soon";
+import { shouldShowComingSoon } from "@/lib/storefront-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function SoapPage() {
+  if (await shouldShowComingSoon()) return <ComingSoonPage />;
+
   const items = await getDb()
     .select()
     .from(products)

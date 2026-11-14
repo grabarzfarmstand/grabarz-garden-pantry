@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { productFulfillmentChoices } from "@/lib/fulfillment";
 import { getDeliveryTierForZip } from "@/lib/delivery-zips";
 
@@ -49,6 +49,8 @@ type OrderLine = {
   priceCents?: number;
   category?: string;
 };
+
+type StorefrontMode = "coming_soon" | "open";
 
 type ShippingAddress = {
   line1: string | null;
@@ -139,12 +141,14 @@ export default function OwnerDashboard({
   initialItems,
   initialOrders,
   initialMessages,
+  initialStorefrontMode,
   displayName,
   authMethod,
 }: {
   initialItems: Product[];
   initialOrders: RecentOrder[];
   initialMessages: CustomerMessage[];
+  initialStorefrontMode: StorefrontMode;
   displayName: string;
   authMethod: "access" | "password";
 }) {
@@ -154,6 +158,58 @@ export default function OwnerDashboard({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [listMessage, setListMessage] = useState("");
+  const [storefrontMode, setStorefrontMode] = useState(initialStorefrontMode);
+  const [storefrontModeBusy, setStorefrontModeBusy] = useState(false);
+  const [storefrontModeMessage, setStorefrontModeMessage] = useState("");
+  const [previewSessionMessage, setPreviewSessionMessage] = useState("");
+
+  useEffect(() => {
+    if (authMethod !== "access") return;
+    let active = true;
+    fetch("/api/owner/auth/access-session", { method: "POST" })
+      .then(async (response) => {
+        if (response.ok) return;
+        const data = await response.json() as { error?: string };
+        throw new Error(data.error ?? "Could not extend owner preview access.");
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setPreviewSessionMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not extend owner preview access.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [authMethod]);
+
+  async function changeStorefrontMode(nextMode: StorefrontMode) {
+    setStorefrontModeBusy(true);
+    setStorefrontModeMessage("");
+    try {
+      const response = await fetch("/api/owner/storefront", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: nextMode }),
+      });
+      const data = await response.json() as { error?: string; mode?: StorefrontMode };
+      if (!response.ok || data.mode !== nextMode) {
+        setStorefrontModeMessage(data.error ?? "We could not update storefront visibility.");
+        return;
+      }
+      setStorefrontMode(data.mode);
+      setStorefrontModeMessage(nextMode === "coming_soon"
+        ? "Coming Soon mode is on. Public visitors will see the welcome page."
+        : "Your storefront is open to the public.");
+    } catch {
+      setStorefrontModeMessage("We could not reach the server. Please try again.");
+    } finally {
+      setStorefrontModeBusy(false);
+    }
+  }
 
   async function addProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -243,6 +299,32 @@ export default function OwnerDashboard({
     <header className="owner-header"><div className="wrap"><div><h1>Owner Dashboard</h1><p>Welcome, {displayName}. Add and manage your market products here.</p></div><div className="owner-header-actions"><a href="/">View the storefront →</a>{authMethod === "password" && <form method="post" action="/api/owner/auth/logout"><button type="submit">Sign out</button></form>}</div></div></header>
     <div className="owner-main wrap">
       <section className="owner-intro"><h2>Your simple upload routine</h2><ol><li>Choose one clear product photo.</li><li>Fill in the product details.</li><li>Save it as a draft, or check “Show in the store” when it is ready.</li></ol></section>
+      {previewSessionMessage && <p className="form-message" role="alert">{previewSessionMessage} You can continue using the Owner dashboard.</p>}
+      <section className="owner-card storefront-mode-card">
+        <div>
+          <h2>Storefront visibility</h2>
+          <p className="helper">Choose whether shoppers can browse your products.</p>
+        </div>
+        <label className="storefront-mode-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Open storefront to the public"
+            checked={storefrontMode === "open"}
+            disabled={storefrontModeBusy}
+            onChange={(event) => {
+              void changeStorefrontMode(event.currentTarget.checked ? "open" : "coming_soon");
+            }}
+          />
+          <span>{storefrontModeBusy ? "Saving…" : storefrontMode === "open" ? "Open to Public" : "Coming Soon (Hidden from Public)"}</span>
+        </label>
+        <p className="storefront-mode-description">
+          {storefrontMode === "open"
+            ? "Everyone can visit the shop pages. Your owner session can preview them at any time."
+            : "Public visitors see the welcome page. Your owner session can still browse the full storefront."}
+        </p>
+        {storefrontModeMessage && <p className="form-message" role="status">{storefrontModeMessage}</p>}
+      </section>
       <div className="owner-grid">
         <section className="owner-card"><h2>Add a product</h2><p className="helper">Start with one item. You can repeat this whenever you have something new.</p>
           <form className="product-form" onSubmit={addProduct}>
