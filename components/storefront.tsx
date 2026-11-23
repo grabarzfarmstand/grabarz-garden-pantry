@@ -1,5 +1,6 @@
 import { AddToCartButton, CartButton } from "@/components/cart";
 import { getProductFulfillmentDisplay } from "@/lib/fulfillment";
+import type { FarmstandAnnouncement } from "@/lib/farmstand-announcement-contract";
 
 /* eslint-disable @next/next/no-html-link-for-pages */
 
@@ -120,6 +121,21 @@ export function CategoryLinks() {
         </a>
       ))}
     </nav>
+  );
+}
+
+export function FarmstandAnnouncementBanner({
+  announcement,
+}: {
+  announcement: FarmstandAnnouncement;
+}) {
+  if (!announcement.enabled) return null;
+
+  return (
+    <aside className="farmstand-announcement" aria-labelledby="farmstand-note-label">
+      <p className="eyebrow dark" id="farmstand-note-label">Farmstand Note</p>
+      <p>{announcement.message}</p>
+    </aside>
   );
 }
 

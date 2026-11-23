@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { productFulfillmentChoices } from "@/lib/fulfillment";
 import { getDeliveryTierForZip } from "@/lib/delivery-zips";
+import {
+  FARMSTAND_ANNOUNCEMENT_MAX_LENGTH,
+  type FarmstandAnnouncement,
+} from "@/lib/farmstand-announcement-contract";
 
 /* eslint-disable @next/next/no-html-link-for-pages */
 
@@ -142,6 +146,7 @@ export default function OwnerDashboard({
   initialOrders,
   initialMessages,
   initialStorefrontMode,
+  initialFarmstandAnnouncement,
   displayName,
   authMethod,
 }: {
@@ -149,6 +154,7 @@ export default function OwnerDashboard({
   initialOrders: RecentOrder[];
   initialMessages: CustomerMessage[];
   initialStorefrontMode: StorefrontMode;
+  initialFarmstandAnnouncement: FarmstandAnnouncement;
   displayName: string;
   authMethod: "access" | "password";
 }) {
@@ -161,6 +167,9 @@ export default function OwnerDashboard({
   const [storefrontMode, setStorefrontMode] = useState(initialStorefrontMode);
   const [storefrontModeBusy, setStorefrontModeBusy] = useState(false);
   const [storefrontModeMessage, setStorefrontModeMessage] = useState("");
+  const [farmstandAnnouncement, setFarmstandAnnouncement] = useState(initialFarmstandAnnouncement);
+  const [farmstandAnnouncementBusy, setFarmstandAnnouncementBusy] = useState(false);
+  const [farmstandAnnouncementMessage, setFarmstandAnnouncementMessage] = useState("");
   const [previewSessionMessage, setPreviewSessionMessage] = useState("");
 
   useEffect(() => {
@@ -208,6 +217,32 @@ export default function OwnerDashboard({
       setStorefrontModeMessage("We could not reach the server. Please try again.");
     } finally {
       setStorefrontModeBusy(false);
+    }
+  }
+
+  async function saveFarmstandAnnouncement() {
+    setFarmstandAnnouncementBusy(true);
+    setFarmstandAnnouncementMessage("");
+    try {
+      const response = await fetch("/api/owner/announcement", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(farmstandAnnouncement),
+      });
+      const data = await response.json() as {
+        error?: string;
+        announcement?: FarmstandAnnouncement;
+      };
+      if (!response.ok || !data.announcement) {
+        setFarmstandAnnouncementMessage(data.error ?? "We could not save the announcement.");
+        return;
+      }
+      setFarmstandAnnouncement(data.announcement);
+      setFarmstandAnnouncementMessage("Farmstand announcement saved.");
+    } catch {
+      setFarmstandAnnouncementMessage("We could not reach the server. Please try again.");
+    } finally {
+      setFarmstandAnnouncementBusy(false);
     }
   }
 
@@ -324,6 +359,56 @@ export default function OwnerDashboard({
             : "Public visitors see the welcome page. Your owner session can still browse the full storefront."}
         </p>
         {storefrontModeMessage && <p className="form-message" role="status">{storefrontModeMessage}</p>}
+      </section>
+      <section className="owner-card farmstand-announcement-owner">
+        <div>
+          <h2>Farmstand Announcement</h2>
+          <p className="helper">
+            Share a seasonal note below the homepage hero and above the shop products.
+          </p>
+        </div>
+        <div className="field">
+          <label htmlFor="farmstand-announcement-message">Announcement message</label>
+          <textarea
+            id="farmstand-announcement-message"
+            value={farmstandAnnouncement.message}
+            maxLength={FARMSTAND_ANNOUNCEMENT_MAX_LENGTH}
+            rows={4}
+            disabled={farmstandAnnouncementBusy}
+            onChange={(event) => {
+              const message = event.currentTarget.value;
+              setFarmstandAnnouncement((current) => ({ ...current, message }));
+              setFarmstandAnnouncementMessage("");
+            }}
+          />
+          <small>{farmstandAnnouncement.message.length}/{FARMSTAND_ANNOUNCEMENT_MAX_LENGTH} characters</small>
+        </div>
+        <label className="storefront-mode-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Show announcement on storefront"
+            checked={farmstandAnnouncement.enabled}
+            disabled={farmstandAnnouncementBusy}
+            onChange={(event) => {
+              const enabled = event.currentTarget.checked;
+              setFarmstandAnnouncement((current) => ({ ...current, enabled }));
+              setFarmstandAnnouncementMessage("");
+            }}
+          />
+          <span>Show on Storefront</span>
+        </label>
+        {farmstandAnnouncementMessage && (
+          <p className="form-message" role="status">{farmstandAnnouncementMessage}</p>
+        )}
+        <button
+          className="save-button"
+          type="button"
+          disabled={farmstandAnnouncementBusy}
+          onClick={() => void saveFarmstandAnnouncement()}
+        >
+          {farmstandAnnouncementBusy ? "Saving…" : "Save Announcement"}
+        </button>
       </section>
       <div className="owner-grid">
         <section className="owner-card"><h2>Add a product</h2><p className="helper">Start with one item. You can repeat this whenever you have something new.</p>

@@ -1,9 +1,11 @@
 import {
   CategoryCards,
+  FarmstandAnnouncementBanner,
   StorefrontFooter,
   StorefrontHeader,
 } from "@/components/storefront";
 import { ComingSoonPage } from "@/components/coming-soon";
+import { getFarmstandAnnouncement } from "@/lib/farmstand-announcement";
 import { shouldShowComingSoon } from "@/lib/storefront-mode";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +18,7 @@ export default async function Home({
   if (await shouldShowComingSoon()) return <ComingSoonPage />;
 
   const checkoutResult = (await searchParams)?.checkout;
+  const farmstandAnnouncement = await getFarmstandAnnouncement();
 
   return (
     <main>
@@ -59,6 +62,10 @@ export default async function Home({
           </a>
         </div>
       </section>
+
+      <div className="wrap">
+        <FarmstandAnnouncementBanner announcement={farmstandAnnouncement} />
+      </div>
 
       <section className="section category-section">
         <div className="wrap">
