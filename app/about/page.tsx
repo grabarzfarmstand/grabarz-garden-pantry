@@ -7,10 +7,10 @@ export default function AboutPage() {
       <section className="policy-main about-main">
         <div className="wrap">
           <p className="eyebrow dark">Grown · Gathered · Handmade</p>
-          <h1>About Sandi &amp; Grabarz Garden &amp; Pantry</h1>
+          <h1>About Grabarz Garden &amp; Pantry</h1>
           <div className="about-copy">
             <p>
-              I’ve always been drawn to a small-homestead, farm-style way of life—gardening,
+              I’ve always been drawn to a small-homestead, homespun way of life—gardening,
               caring for our chickens, canning, baking, and making things by hand. I love
               seeing possibility in the everyday, then adding a little creativity and care
               to make something useful or beautiful. I’ve also long wanted to build a small
@@ -35,6 +35,10 @@ export default function AboutPage() {
               reflects the homegrown, practical, creative spirit I want this little
               business to share.
             </p>
+          </div>
+          <div className="about-signoff">
+            <span>Warmly,</span>
+            <span>Sandi</span>
           </div>
           <figure className="about-gallery">
             <div className="about-gallery-grid">
