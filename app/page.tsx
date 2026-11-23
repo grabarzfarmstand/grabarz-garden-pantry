@@ -50,29 +50,15 @@ export default async function Home({
           <p className="eyebrow">A seasonal farm & home market</p>
           <h1>Farm goodness, handmade essentials & found treasures.</h1>
           <p>
-            Shop small-batch pantry favorites, seasonal garden goods, Rustic
-            Kettle soaps, neighbor-made wares and thoughtfully gathered resale
-            finds.
+            Shop small-batch pantry favorites, seasonal garden goods,
+            neighbor-made wares and thoughtfully gathered resale finds.
           </p>
           <a className="button rose" href="/shop">See what’s available</a>
+          <a className="hero-soap-link" href="/soap">
+            Featuring small-batch soaps from Rustic Kettle Soap Co. →
+          </a>
         </div>
       </section>
-
-      <a className="soap-strip wrap" href="/soap">
-        <img
-          src="/assets/rustic-kettle-logo-wide.png"
-          alt="Rustic Kettle Soap Co. by Grabarz Garden & Pantry"
-        />
-        <div>
-          <p className="eyebrow dark">Our handmade soap line</p>
-          <h2>Rustic, useful and made in small batches.</h2>
-          <p>
-            Old-fashioned farmhouse character for cleansing bars, solid hair
-            care and home essentials.
-          </p>
-          <span className="button sage">Shop Rustic Kettle</span>
-        </div>
-      </a>
 
       <section className="section category-section">
         <div className="wrap">
