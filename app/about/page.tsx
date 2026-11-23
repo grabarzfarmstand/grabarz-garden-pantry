@@ -1,4 +1,11 @@
+import { Alex_Brush } from "next/font/google";
 import { StorefrontFooter, StorefrontHeader } from "@/components/storefront";
+
+const alexBrush = Alex_Brush({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
 
 export default function AboutPage() {
   return (
@@ -36,7 +43,7 @@ export default function AboutPage() {
               business to share.
             </p>
           </div>
-          <div className="about-signoff">
+          <div className={`about-signoff ${alexBrush.className} text-left`}>
             <span>Warmly,</span>
             <span>Sandi</span>
           </div>
