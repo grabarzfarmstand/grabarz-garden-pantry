@@ -57,9 +57,17 @@ export default async function Home({
             neighbor-made wares and thoughtfully gathered resale finds.
           </p>
           <a className="button rose" href="/shop">See what’s available</a>
-          <a className="hero-soap-link" href="/soap">
-            Featuring small-batch soaps from Rustic Kettle Soap Co. →
-          </a>
+          <div className="hero-soap-feature">
+            <img
+              src="/assets/rustic-kettle-logo-round.png"
+              alt="Rustic Kettle Soap Co. logo"
+            />
+            <div className="hero-soap-feature-copy">
+              <p className="hero-soap-eyebrow">Handmade Soap Line</p>
+              <h2>Rustic Kettle Soap Co.</h2>
+              <a href="/soap">Explore Soaps →</a>
+            </div>
+          </div>
         </div>
       </section>
 
